@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../services/preferences_service.dart';
+
 class WorkerSignupScreen extends StatefulWidget {
   const WorkerSignupScreen({
     super.key,
@@ -278,7 +280,7 @@ class _WorkerSignupScreenState
       );
 
       // ========================================================
-      // SAVE WORKER DETAILS
+      // SAVE WORKER DETAILS TO FIRESTORE
       // ========================================================
 
       await FirebaseFirestore.instance
@@ -301,6 +303,8 @@ class _WorkerSignupScreenState
           'gender':
               _selectedGender,
 
+          // Profile image upload will be
+          // connected later.
           'profileImage':
               '',
 
@@ -321,13 +325,42 @@ class _WorkerSignupScreenState
         '✅ Worker profile saved',
       );
 
+      // ========================================================
+      // SAVE PHONE NUMBER LOCALLY
+      // ========================================================
+
+      await PreferencesService
+          .savePhoneNumber(
+        phoneNumber,
+      );
+
+      debugPrint(
+        '💾 Phone number saved locally',
+      );
+
+      // ========================================================
+      // USER REGISTERED = TRUE
+      //
+      // VERY IMPORTANT:
+      //
+      // This is set ONLY after Firestore
+      // worker profile creation succeeds.
+      // ========================================================
+
+      await PreferencesService
+          .setUserRegistered(true);
+
+      debugPrint(
+        '💾 user_registered = true',
+      );
+
+      // ========================================================
+      // SIGNUP SUCCESS
+      // ========================================================
+
       if (!mounted) {
         return;
       }
-
-      // ========================================================
-      // SUCCESS
-      // ========================================================
 
       _showMessage(
         'Account created successfully',
@@ -578,14 +611,9 @@ class _WorkerSignupScreenState
                           .start,
 
                   children: [
-                    // --------------------------------------------
-                    // BACK BUTTON
-                    // --------------------------------------------
-
-                   
-                    // --------------------------------------------
+                    // ==================================================
                     // TITLE
-                    // --------------------------------------------
+                    // ==================================================
 
                     const Text(
                       'Join Handzy\nThozhan',
@@ -624,9 +652,9 @@ class _WorkerSignupScreenState
                       height: 22,
                     ),
 
-                    // --------------------------------------------
+                    // ==================================================
                     // QUOTE
-                    // --------------------------------------------
+                    // ==================================================
 
                     Container(
                       width:
@@ -727,9 +755,9 @@ class _WorkerSignupScreenState
                           .start,
 
                   children: [
-                    // ==========================================
+                    // ==================================================
                     // TITLE
-                    // ==========================================
+                    // ==================================================
 
                     const Text(
                       'Your Details',
@@ -763,9 +791,9 @@ class _WorkerSignupScreenState
                       height: 22,
                     ),
 
-                    // ==========================================
+                    // ==================================================
                     // PROFILE IMAGE
-                    // ==========================================
+                    // ==================================================
 
                     Center(
                       child:
@@ -889,9 +917,9 @@ class _WorkerSignupScreenState
                       height: 24,
                     ),
 
-                    // ==========================================
+                    // ==================================================
                     // FULL NAME
-                    // ==========================================
+                    // ==================================================
 
                     const Text(
                       'Full Name',
@@ -964,9 +992,9 @@ class _WorkerSignupScreenState
                       height: 18,
                     ),
 
-                    // ==========================================
+                    // ==================================================
                     // BLOOD GROUP
-                    // ==========================================
+                    // ==================================================
 
                     const Text(
                       'Blood Group',
@@ -1052,9 +1080,9 @@ class _WorkerSignupScreenState
                       height: 18,
                     ),
 
-                    // ==========================================
+                    // ==================================================
                     // GENDER
-                    // ==========================================
+                    // ==================================================
 
                     const Text(
                       'Gender',
@@ -1109,9 +1137,9 @@ class _WorkerSignupScreenState
                       height: 25,
                     ),
 
-                    // ==========================================
+                    // ==================================================
                     // CREATE ACCOUNT
-                    // ==========================================
+                    // ==================================================
 
                     SizedBox(
                       width:
@@ -1189,9 +1217,9 @@ class _WorkerSignupScreenState
                       height: 22,
                     ),
 
-                    // ==========================================
+                    // ==================================================
                     // TRUST SECTION
-                    // ==========================================
+                    // ==================================================
 
                     const Divider(
                       color:
@@ -1263,10 +1291,9 @@ class _WorkerSignupScreenState
 
 // ================================================================
 // TEMPORARY HOME SCREEN
-// ================================================================
 //
-// Later un actual HomeScreen irundha,
-// inga replace pannalam.
+// Later, actual Home screen create pannumbodhu
+// indha class-a actual HomeScreen-oda replace pannalaam.
 // ================================================================
 
 class WorkerHomeScreen
@@ -1280,11 +1307,15 @@ class WorkerHomeScreen
     BuildContext context,
   ) {
     return const Scaffold(
-      body: Center(
-        child: Text(
+      body:
+          Center(
+        child:
+            Text(
           'Worker Home',
-          style: TextStyle(
-            fontSize: 28,
+          style:
+              TextStyle(
+            fontSize:
+                28,
             fontWeight:
                 FontWeight.bold,
           ),

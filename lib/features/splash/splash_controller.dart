@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/internet_service.dart';
 import '../../services/location_service.dart';
+import '../../services/preferences_service.dart';
 
 // ============================================================
 // FLOW RESULT TYPE
@@ -22,9 +23,15 @@ class SplashFlowResult {
 
   final String? locationName;
 
+  final bool skipNotification;
+
+  final bool registeredUser;
+
   const SplashFlowResult({
     required this.status,
     this.locationName,
+    this.skipNotification = false,
+    this.registeredUser = false,
   });
 
   // ==========================================================
@@ -32,11 +39,14 @@ class SplashFlowResult {
   // ==========================================================
 
   const SplashFlowResult.success(
-    String location,
-  ) : this(
-          status:
-              SplashFlowStatus.success,
+    String location, {
+    bool skipNotification = false,
+    bool registeredUser = false,
+  }) : this(
+          status: SplashFlowStatus.success,
           locationName: location,
+          skipNotification: skipNotification,
+          registeredUser: registeredUser,
         );
 
   // ==========================================================
@@ -45,8 +55,7 @@ class SplashFlowResult {
 
   const SplashFlowResult.internetRequired()
       : this(
-          status:
-              SplashFlowStatus.internetRequired,
+          status: SplashFlowStatus.internetRequired,
         );
 
   // ==========================================================
@@ -55,8 +64,7 @@ class SplashFlowResult {
 
   const SplashFlowResult.locationRequired()
       : this(
-          status:
-              SplashFlowStatus.locationRequired,
+          status: SplashFlowStatus.locationRequired,
         );
 }
 
@@ -73,8 +81,7 @@ class SplashController {
     );
 
     // ==========================================================
-    // STEP 1
-    // INTERNET FIRST
+    // STEP 1 — INTERNET
     // ==========================================================
 
     debugPrint(
@@ -94,16 +101,15 @@ class SplashController {
     }
 
     debugPrint(
-      '✅ Internet Connected',
+      '✅ Internet connected',
     );
 
     // ==========================================================
-    // STEP 2
-    // CHECK PHONE LOCATION SERVICE
+    // STEP 2 — LOCATION SERVICE
     // ==========================================================
 
     debugPrint(
-      '2️⃣ Checking phone Location Service...',
+      '2️⃣ Checking location service...',
     );
 
     final bool locationServiceEnabled =
@@ -124,8 +130,7 @@ class SplashController {
     );
 
     // ==========================================================
-    // STEP 3
-    // LOCATION PERMISSION
+    // STEP 3 — LOCATION PERMISSION
     // ==========================================================
 
     debugPrint(
@@ -137,7 +142,7 @@ class SplashController {
             .checkLocationPermission();
 
     debugPrint(
-      '3️⃣ Location permission result: '
+      '📍 Location permission: '
       '$locationPermission',
     );
 
@@ -155,12 +160,11 @@ class SplashController {
     );
 
     // ==========================================================
-    // STEP 4
-    // GPS LOCATION
+    // STEP 4 — GPS
     // ==========================================================
 
     debugPrint(
-      '4️⃣ Getting current GPS location...',
+      '4️⃣ Fetching current GPS location...',
     );
 
     final position =
@@ -185,17 +189,16 @@ class SplashController {
     );
 
     // ==========================================================
-    // STEP 5
-    // LOCATION NAME
+    // STEP 5 — LOCATION NAME
     // ==========================================================
-
-    debugPrint(
-      '5️⃣ Getting location name...',
-    );
 
     String? locationName;
 
     try {
+      debugPrint(
+        '5️⃣ Getting location name...',
+      );
+
       locationName =
           await LocationService
               .getLocationName(
@@ -213,7 +216,7 @@ class SplashController {
           'Current location';
 
       debugPrint(
-        '⚠️ Using fallback location name',
+        '⚠️ Using fallback location',
       );
     }
 
@@ -222,9 +225,7 @@ class SplashController {
     );
 
     // ==========================================================
-    // FINAL INTERNET CHECK
-    //
-    // Check again before completing the flow.
+    // STEP 6 — FINAL INTERNET CHECK
     // ==========================================================
 
     debugPrint(
@@ -248,15 +249,45 @@ class SplashController {
     );
 
     // ==========================================================
+    // STEP 7 — SHARED PREFERENCES
+    // ==========================================================
+
+    debugPrint(
+      '7️⃣ Checking saved onboarding state...',
+    );
+
+    final bool notificationCompleted =
+        await PreferencesService
+            .isNotificationCompleted();
+
+    final bool registeredUser =
+        await PreferencesService
+            .isUserRegistered();
+
+    debugPrint(
+      '🔔 Notification completed: '
+      '$notificationCompleted',
+    );
+
+    debugPrint(
+      '👤 User registered: '
+      '$registeredUser',
+    );
+
+    // ==========================================================
     // SUCCESS
     // ==========================================================
 
     debugPrint(
-      '🎉 Complete location flow successful',
+      '🎉 Splash flow successful',
     );
 
     return SplashFlowResult.success(
       locationName,
+      skipNotification:
+          notificationCompleted,
+      registeredUser:
+          registeredUser,
     );
   }
 }

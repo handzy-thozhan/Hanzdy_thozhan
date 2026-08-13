@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../services/notification_service.dart';
+import '../../services/preferences_service.dart';
 import '../auth/phone_number_screen.dart';
 
 class NotificationPermissionScreen extends StatefulWidget {
@@ -80,7 +81,13 @@ class _NotificationPermissionScreenState
   //
   // ALLOW
   //   ↓
-  // Next page immediately
+  // Save notification_completed = true
+  //   ↓
+  // Phone Number
+  //
+  // ALREADY COMPLETED
+  //   ↓
+  // Phone Number
   //
   // DON'T ALLOW
   //   ↓
@@ -97,11 +104,43 @@ class _NotificationPermissionScreenState
     );
 
     // ==========================================================
-    // CHECK CURRENT PERMISSION
+    // CHECK SHARED PREFERENCES FIRST
+    // ==========================================================
+
+    final bool notificationCompleted =
+        await PreferencesService
+            .isNotificationCompleted();
+
+    if (!mounted) {
+      return;
+    }
+
+    debugPrint(
+      '💾 Notification completed from preferences: '
+      '$notificationCompleted',
+    );
+
+    // ==========================================================
+    // IF ALREADY COMPLETED
+    // ==========================================================
+
+    if (notificationCompleted) {
+      debugPrint(
+        '✅ Notification onboarding already completed',
+      );
+
+      await _goToNextPage();
+
+      return;
+    }
+
+    // ==========================================================
+    // CHECK CURRENT SYSTEM PERMISSION
     // ==========================================================
 
     final bool ready =
-        await NotificationService.isNotificationReady();
+        await NotificationService
+            .isNotificationReady();
 
     if (!mounted) {
       return;
@@ -116,6 +155,14 @@ class _NotificationPermissionScreenState
         '✅ Notification already granted',
       );
 
+      // Save locally
+      await PreferencesService
+          .setNotificationCompleted(true);
+
+      if (!mounted) {
+        return;
+      }
+
       await _goToNextPage();
 
       return;
@@ -127,34 +174,41 @@ class _NotificationPermissionScreenState
 
     setState(() {
       _loading = true;
+
       _notificationRequired = false;
     });
 
     final PermissionStatus permission =
-        await NotificationService.requestPermission();
+        await NotificationService
+            .requestPermission();
 
     if (!mounted) {
       return;
     }
 
     debugPrint(
-      '🔔 Notification permission result: $permission',
+      '🔔 Notification permission result: '
+      '$permission',
     );
 
     // ==========================================================
     // ALLOWED
     //
-    // IMPORTANT:
-    // DON'T SET _loading = false.
-    //
-    // This prevents the notification screen from
-    // appearing for a few seconds before next page.
+    // Save SharedPreferences
     // ==========================================================
 
-    if (permission == PermissionStatus.granted) {
+    if (permission ==
+        PermissionStatus.granted) {
       debugPrint(
         '✅ User allowed notifications',
       );
+
+      await PreferencesService
+          .setNotificationCompleted(true);
+
+      if (!mounted) {
+        return;
+      }
 
       await _goToNextPage();
 
@@ -171,6 +225,7 @@ class _NotificationPermissionScreenState
 
     setState(() {
       _loading = false;
+
       _notificationRequired = true;
     });
   }
@@ -192,11 +247,12 @@ class _NotificationPermissionScreenState
     );
 
     // ==========================================================
-    // HIDE OLD "OPEN SETTINGS" STATE IMMEDIATELY
+    // HIDE OLD STATE
     // ==========================================================
 
     setState(() {
       _loading = true;
+
       _notificationRequired = false;
     });
 
@@ -219,14 +275,16 @@ class _NotificationPermissionScreenState
     // ==========================================================
 
     final bool ready =
-        await NotificationService.isNotificationReady();
+        await NotificationService
+            .isNotificationReady();
 
     if (!mounted) {
       return;
     }
 
     debugPrint(
-      '🔔 Notification ready after settings: $ready',
+      '🔔 Notification ready after settings: '
+      '$ready',
     );
 
     // ==========================================================
@@ -238,8 +296,14 @@ class _NotificationPermissionScreenState
         '✅ Notification enabled from Settings',
       );
 
-      // Keep loading state.
-      // Go directly to next page.
+      // Save SharedPreferences
+      await PreferencesService
+          .setNotificationCompleted(true);
+
+      if (!mounted) {
+        return;
+      }
+
       await _goToNextPage();
 
       return;
@@ -255,6 +319,7 @@ class _NotificationPermissionScreenState
 
     setState(() {
       _loading = false;
+
       _notificationRequired = true;
     });
   }
@@ -274,7 +339,8 @@ class _NotificationPermissionScreenState
 
     _openedSettings = true;
 
-    await NotificationService.openNotificationSettings();
+    await NotificationService
+        .openNotificationSettings();
   }
 
   // ============================================================
@@ -294,8 +360,10 @@ class _NotificationPermissionScreenState
       '🎉 Notification flow completed',
     );
 
-    // Very small transition delay only.
-    // No UI state is changed here.
+    // ==========================================================
+    // VERY SMALL TRANSITION DELAY
+    // ==========================================================
+
     await Future.delayed(
       const Duration(
         milliseconds: 150,
@@ -325,7 +393,8 @@ class _NotificationPermissionScreenState
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance
+        .removeObserver(this);
 
     super.dispose();
   }
@@ -339,14 +408,17 @@ class _NotificationPermissionScreenState
     BuildContext context,
   ) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor:
+          AppColors.background,
 
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics:
+                const BouncingScrollPhysics(),
 
-            padding: const EdgeInsets.symmetric(
+            padding:
+                const EdgeInsets.symmetric(
               horizontal: 28,
               vertical: 24,
             ),
@@ -364,14 +436,19 @@ class _NotificationPermissionScreenState
                   width: 100,
                   height: 100,
 
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                  decoration:
+                      BoxDecoration(
+                    shape:
+                        BoxShape.circle,
 
-                    color: AppColors.lightTeal,
+                    color:
+                        AppColors.lightTeal,
 
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.secondary.withValues(
+                        color: AppColors
+                            .secondary
+                            .withValues(
                           alpha: 0.18,
                         ),
 
@@ -382,10 +459,13 @@ class _NotificationPermissionScreenState
                     ],
                   ),
 
-                  child: const Icon(
-                    Icons.notifications_active_rounded,
+                  child:
+                      const Icon(
+                    Icons
+                        .notifications_active_rounded,
 
-                    color: AppColors.primary,
+                    color:
+                        AppColors.primary,
 
                     size: 52,
                   ),
@@ -404,14 +484,18 @@ class _NotificationPermissionScreenState
                       ? 'Notification Required'
                       : 'Allow Notifications',
 
-                  textAlign: TextAlign.center,
+                  textAlign:
+                      TextAlign.center,
 
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style:
+                      const TextStyle(
+                    color:
+                        AppColors.textPrimary,
 
                     fontSize: 24,
 
-                    fontWeight: FontWeight.w800,
+                    fontWeight:
+                        FontWeight.w800,
                   ),
                 ),
 
@@ -430,10 +514,13 @@ class _NotificationPermissionScreenState
                       : 'Allow notifications to receive\n'
                         'new customer requests and important updates.',
 
-                  textAlign: TextAlign.center,
+                  textAlign:
+                      TextAlign.center,
 
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style:
+                      const TextStyle(
+                    color:
+                        AppColors.textSecondary,
 
                     fontSize: 14,
 
@@ -450,11 +537,13 @@ class _NotificationPermissionScreenState
                 // ==================================================
 
                 SizedBox(
-                  width: double.infinity,
+                  width:
+                      double.infinity,
 
                   height: 54,
 
-                  child: ElevatedButton(
+                  child:
+                      ElevatedButton(
                     onPressed:
                         _loading
                             ? null
@@ -488,7 +577,8 @@ class _NotificationPermissionScreenState
                                             .notifications_active_rounded,
 
                                     color:
-                                        AppColors.textOnPrimary,
+                                        AppColors
+                                            .textOnPrimary,
                                   ),
 
                                   const SizedBox(
@@ -500,7 +590,8 @@ class _NotificationPermissionScreenState
                                         ? 'Open Settings'
                                         : 'Allow Notifications',
 
-                                    style: const TextStyle(
+                                    style:
+                                        const TextStyle(
                                       fontSize: 16,
 
                                       fontWeight:

@@ -7,7 +7,7 @@ version: 1.0.0+1
 environment:
   sdk: ^3.12.2
 
-dependencies:   
+dependencies:
   flutter:
     sdk: flutter
 
@@ -23,6 +23,7 @@ dependencies:
   android_intent_plus: 5.3.1
   cloud_firestore: ^6.8.0
   image_picker: ^1.2.3
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

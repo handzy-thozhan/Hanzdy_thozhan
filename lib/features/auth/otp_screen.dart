@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/preferences_service.dart';
 import 'auth_service.dart';
 import 'worker_signup/worker_signup_screen.dart';
 
@@ -41,6 +42,7 @@ class _OtpScreenState extends State<OtpScreen> {
   // ============================================================
 
   bool _isLoading = false;
+
   bool _isVerified = false;
 
   String _errorMessage = '';
@@ -111,12 +113,12 @@ class _OtpScreenState extends State<OtpScreen> {
       _errorMessage = '';
     });
 
-    // ----------------------------------------------------------
-    // IF USER ENTERS A DIGIT
-    // ----------------------------------------------------------
+    // ==========================================================
+    // USER ENTERED DIGIT
+    // ==========================================================
 
     if (text.isNotEmpty) {
-      // Only keep the last entered digit
+      // Keep only last entered character
       if (text.length > 1) {
         final String lastDigit =
             text.substring(text.length - 1);
@@ -126,7 +128,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
         _controllers[index].selection =
             TextSelection.fromPosition(
-          TextPosition(
+          const TextPosition(
             offset: 1,
           ),
         );
@@ -134,13 +136,14 @@ class _OtpScreenState extends State<OtpScreen> {
 
       // Move to next box
       if (index < 5) {
-        _focusNodes[index + 1].requestFocus();
+        _focusNodes[index + 1]
+            .requestFocus();
       }
     }
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // SIX DIGITS COMPLETE
-    // ----------------------------------------------------------
+    // ==========================================================
 
     if (_otp.length == 6) {
       FocusScope.of(context).unfocus();
@@ -166,10 +169,15 @@ class _OtpScreenState extends State<OtpScreen> {
 
     setState(() {
       _isLoading = true;
+
       _errorMessage = '';
     });
 
     try {
+      // ========================================================
+      // FIREBASE OTP VERIFICATION
+      // ========================================================
+
       final UserCredential? result =
           await AuthService().verifyOTP(
         verificationId:
@@ -193,14 +201,17 @@ class _OtpScreenState extends State<OtpScreen> {
               'Please enter a valid OTP';
         });
 
-        // Clear all boxes
+        // Clear OTP
         for (final TextEditingController controller
             in _controllers) {
           controller.clear();
         }
 
-        // Focus first box
-        _focusNodes[0].requestFocus();
+        // IMPORTANT:
+        // First box can receive keyboard input again.
+        FocusScope.of(context).requestFocus(
+          _focusNodes[0],
+        );
 
         return;
       }
@@ -213,6 +224,45 @@ class _OtpScreenState extends State<OtpScreen> {
         '✅ OTP VERIFIED SUCCESSFULLY',
       );
 
+      // ========================================================
+      // SAVE OTP VERIFICATION
+      // ========================================================
+
+      await PreferencesService
+          .setPhoneVerified(true);
+
+      // ========================================================
+      // SAVE PHONE NUMBER
+      // ========================================================
+
+      final User? firebaseUser =
+          FirebaseAuth.instance.currentUser;
+
+      final String phoneNumber =
+          firebaseUser?.phoneNumber ??
+              widget.phoneNumber;
+
+      await PreferencesService
+          .savePhoneNumber(
+        phoneNumber,
+      );
+
+      debugPrint(
+        '💾 Phone verification saved',
+      );
+
+      debugPrint(
+        '💾 Phone number saved: $phoneNumber',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      // ========================================================
+      // SHOW SUCCESS ON SAME OTP SCREEN
+      // ========================================================
+
       setState(() {
         _isLoading = false;
 
@@ -221,8 +271,16 @@ class _OtpScreenState extends State<OtpScreen> {
         _errorMessage = '';
       });
 
-      // Same OTP screen-la
-      // Verified Successfully show aagum
+      // ========================================================
+      // WAIT
+      //
+      // User should see:
+      //
+      // ✓ Verified Successfully
+      //
+      // Then automatically navigate.
+      // ========================================================
+
       await Future.delayed(
         const Duration(
           seconds: 1,
@@ -254,12 +312,13 @@ class _OtpScreenState extends State<OtpScreen> {
             'OTP verification failed. Please try again.';
       });
 
+      // Allow typing again
       _focusNodes[0].requestFocus();
     }
   }
 
   // ============================================================
-  // CHECK PHONE NUMBER IN FIRESTORE
+  // CHECK EXISTING PHONE IN FIRESTORE
   // ============================================================
 
   Future<void> _checkExistingPhone() async {
@@ -268,6 +327,10 @@ class _OtpScreenState extends State<OtpScreen> {
           FirebaseAuth.instance.currentUser;
 
       if (user == null) {
+        debugPrint(
+          '❌ Firebase user session not found',
+        );
+
         _showMessage(
           'User session not found. Please try again.',
         );
@@ -275,13 +338,21 @@ class _OtpScreenState extends State<OtpScreen> {
         return;
       }
 
+      // ========================================================
+      // GET PHONE
+      // ========================================================
+
       final String phoneNumber =
           user.phoneNumber ??
               widget.phoneNumber;
 
       debugPrint(
-        '🔍 Checking phone number: $phoneNumber',
+        '🔍 Checking worker phone: $phoneNumber',
       );
+
+      // ========================================================
+      // FIRESTORE CHECK
+      // ========================================================
 
       final QuerySnapshot<
               Map<String, dynamic>>
@@ -300,7 +371,7 @@ class _OtpScreenState extends State<OtpScreen> {
       }
 
       // ========================================================
-      // PHONE EXISTS
+      // EXISTING WORKER
       // ========================================================
 
       if (snapshot.docs.isNotEmpty) {
@@ -311,6 +382,14 @@ class _OtpScreenState extends State<OtpScreen> {
         debugPrint(
           '➡️ Going to HOME',
         );
+
+        // Existing user is already registered.
+        await PreferencesService
+            .setUserRegistered(true);
+
+        if (!mounted) {
+          return;
+        }
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -328,16 +407,22 @@ class _OtpScreenState extends State<OtpScreen> {
       }
 
       // ========================================================
-      // PHONE DOES NOT EXIST
+      // NEW WORKER
       // ========================================================
 
       debugPrint(
-        '🆕 New worker',
+        '🆕 New worker found',
       );
 
       debugPrint(
         '➡️ Going to SIGNUP',
       );
+
+      // IMPORTANT:
+      // Do NOT set userRegistered = true here.
+      //
+      // User becomes registered only after
+      // Signup is successfully completed.
 
       Navigator.pushAndRemoveUntil(
         context,
@@ -384,6 +469,7 @@ class _OtpScreenState extends State<OtpScreen> {
       SnackBar(
         content:
             Text(message),
+
         behavior:
             SnackBarBehavior.floating,
       ),
@@ -403,6 +489,7 @@ class _OtpScreenState extends State<OtpScreen> {
     return SizedBox(
       width: 48,
       height: 58,
+
       child: TextField(
         controller:
             _controllers[index],
@@ -428,8 +515,12 @@ class _OtpScreenState extends State<OtpScreen> {
 
         style:
             const TextStyle(
-          color: darkColor,
-          fontSize: 23,
+          color:
+              darkColor,
+
+          fontSize:
+              23,
+
           fontWeight:
               FontWeight.w700,
         ),
@@ -444,9 +535,11 @@ class _OtpScreenState extends State<OtpScreen> {
 
         decoration:
             InputDecoration(
-          counterText: '',
+          counterText:
+              '',
 
-          filled: true,
+          filled:
+              true,
 
           fillColor:
               Colors.white,
@@ -465,7 +558,9 @@ class _OtpScreenState extends State<OtpScreen> {
                 const BorderSide(
               color:
                   borderColor,
-              width: 1.2,
+
+              width:
+                  1.2,
             ),
           ),
 
@@ -478,11 +573,12 @@ class _OtpScreenState extends State<OtpScreen> {
 
             borderSide:
                 BorderSide(
-              color: _isVerified
-                  ? primaryColor
-                  : isFocused
+              color:
+                  _isVerified
                       ? primaryColor
-                      : borderColor,
+                      : isFocused
+                          ? primaryColor
+                          : borderColor,
 
               width:
                   _isVerified ||
@@ -503,7 +599,9 @@ class _OtpScreenState extends State<OtpScreen> {
                 const BorderSide(
               color:
                   primaryColor,
-              width: 2,
+
+              width:
+                  2,
             ),
           ),
         ),
@@ -558,7 +656,8 @@ class _OtpScreenState extends State<OtpScreen> {
       resizeToAvoidBottomInset:
           true,
 
-      body: SafeArea(
+      body:
+          SafeArea(
         child:
             SingleChildScrollView(
           physics:
@@ -572,10 +671,10 @@ class _OtpScreenState extends State<OtpScreen> {
             30,
           ),
 
-          child: Column(
+          child:
+              Column(
             crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+                CrossAxisAlignment.start,
 
             children: [
               // ==================================================
@@ -845,8 +944,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     shape:
                         RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius
-                              .circular(
+                          BorderRadius.circular(
                         16,
                       ),
                     ),
@@ -857,12 +955,15 @@ class _OtpScreenState extends State<OtpScreen> {
                           ? const SizedBox(
                               width:
                                   24,
+
                               height:
                                   24,
+
                               child:
                                   CircularProgressIndicator(
                                 color:
                                     Colors.white,
+
                                 strokeWidth:
                                     3,
                               ),
@@ -876,9 +977,9 @@ class _OtpScreenState extends State<OtpScreen> {
                                   const TextStyle(
                                 fontSize:
                                     18,
+
                                 fontWeight:
-                                    FontWeight
-                                        .w800,
+                                    FontWeight.w800,
                               ),
                             ),
                 ),
@@ -893,6 +994,9 @@ class _OtpScreenState extends State<OtpScreen> {
 
 // ================================================================
 // TEMPORARY HOME SCREEN
+//
+// IMPORTANT:
+// Replace this later with your actual Home screen.
 // ================================================================
 
 class WorkerHomeScreen
@@ -905,13 +1009,17 @@ class WorkerHomeScreen
   Widget build(
     BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: Text(
+      body:
+          Center(
+        child:
+            Text(
           'Worker Home',
+
           style:
               TextStyle(
             fontSize:
                 28,
+
             fontWeight:
                 FontWeight.bold,
           ),
