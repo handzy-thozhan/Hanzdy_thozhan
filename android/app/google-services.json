@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1051647123848",
+    "project_id": "handzy-thozha",
+    "storage_bucket": "handzy-thozha.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1051647123848:android:a0fefe4d62be8bb1531a3d",
+        "android_client_info": {
+          "package_name": "com.handzy.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWSGXlXZVKRoUE68A4wFe_k6U_58ubG1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1051647123848:android:3564a5ebf17ae692531a3d",
+        "android_client_info": {
+          "package_name": "com.handzy.thozhan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWSGXlXZVKRoUE68A4wFe_k6U_58ubG1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
