@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../core/theme/app_colors.dart';
 import 'auth_service.dart';
 import 'otp_screen.dart';
 
@@ -33,130 +35,76 @@ class _PhoneNumberScreenState
   // ============================================================
   // CONTINUE BUTTON
   // ============================================================
-  
-   Future<void> _continue() async {
 
-  final String phone =
-      _phoneController.text.trim();
+  Future<void> _continue() async {
+    final String phone =
+        _phoneController.text.trim();
 
-
-  if (phone.length != 10) {
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-
-      const SnackBar(
-        content:
-            Text(
-          'Please enter a valid 10-digit mobile number',
-        ),
-      ),
-
-    );
-
-    return;
-  }
-
-
-
-  FocusScope.of(context).unfocus();
-
-
-
-  setState(() {
-
-    _isLoading = true;
-
-  });
-
-
-
-  await AuthService().sendOTP(
-
-    phoneNumber:
-        '+91$phone',
-
-
-
-    onCodeSent:
-        (String verificationId) {
-
-
-      if (!mounted) return;
-
-
-
-      setState(() {
-
-        _isLoading = false;
-
-      });
-
-
-
-      Navigator.push(
-
-        context,
-
-
-        MaterialPageRoute(
-
-          builder:
-              (context) => OtpScreen(
-
-            phoneNumber:
-                phone,
-
-
-            verificationId:
-                verificationId,
-
-          ),
-
-        ),
-
-      );
-
-
-    },
-
-
-
-    onError:
-        (String error) {
-
-
-      if (!mounted) return;
-
-
-
-      setState(() {
-
-        _isLoading = false;
-
-      });
-
-
-
+    if (phone.length != 10) {
       ScaffoldMessenger.of(context)
           .showSnackBar(
-
-        SnackBar(
-
+        const SnackBar(
           content:
-              Text(error),
-
+              Text(
+            'Please enter a valid 10-digit mobile number',
+          ),
         ),
-
       );
 
+      return;
+    }
 
-    },
+    FocusScope.of(context).unfocus();
 
-  );
+    setState(() {
+      _isLoading = true;
+    });
 
-}
-  
+    await AuthService().sendOTP(
+      phoneNumber:
+          '+91$phone',
+
+      onCodeSent:
+          (String verificationId) {
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => OtpScreen(
+              phoneNumber:
+                  phone,
+
+              verificationId:
+                  verificationId,
+            ),
+          ),
+        );
+      },
+
+      onError:
+          (String error) {
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          SnackBar(
+            content:
+                Text(error),
+          ),
+        );
+      },
+    );
+  }
 
   // ============================================================
   // BUILD
@@ -168,9 +116,10 @@ class _PhoneNumberScreenState
   ) {
     return Scaffold(
       backgroundColor:
-          const Color(0xFFF8FAF9),
+          AppColors.background,
 
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset:
+          true,
 
       body: SafeArea(
         child: Padding(
@@ -216,7 +165,7 @@ class _PhoneNumberScreenState
                           decoration:
                               BoxDecoration(
                             color:
-                                Colors.white,
+                                AppColors.background,
 
                             shape:
                                 BoxShape.circle,
@@ -224,9 +173,9 @@ class _PhoneNumberScreenState
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    const Color(
-                                  0xFF00A88F,
-                                ).withValues(
+                                    AppColors
+                                        .secondary
+                                        .withValues(
                                   alpha: 0.15,
                                 ),
 
@@ -265,7 +214,7 @@ class _PhoneNumberScreenState
                         style:
                             TextStyle(
                           color:
-                              Color(0xFF17212B),
+                              AppColors.textPrimary,
 
                           fontSize: 29,
 
@@ -290,7 +239,7 @@ class _PhoneNumberScreenState
                         style:
                             TextStyle(
                           color:
-                              Color(0xFF737D88),
+                              AppColors.textSecondary,
 
                           fontSize: 15,
 
@@ -315,7 +264,7 @@ class _PhoneNumberScreenState
                         style:
                             TextStyle(
                           color:
-                              Color(0xFF17212B),
+                              AppColors.textPrimary,
 
                           fontSize: 14,
 
@@ -338,7 +287,7 @@ class _PhoneNumberScreenState
                         decoration:
                             BoxDecoration(
                           color:
-                              Colors.white,
+                              AppColors.background,
 
                           borderRadius:
                               BorderRadius.circular(
@@ -348,9 +297,7 @@ class _PhoneNumberScreenState
                           border:
                               Border.all(
                             color:
-                                const Color(
-                              0xFFDDE5E2,
-                            ),
+                                AppColors.border,
 
                             width: 1.2,
                           ),
@@ -392,9 +339,8 @@ class _PhoneNumberScreenState
                                     style:
                                         TextStyle(
                                       color:
-                                          Color(
-                                        0xFF17212B,
-                                      ),
+                                          AppColors
+                                              .textPrimary,
 
                                       fontSize:
                                           15,
@@ -412,9 +358,7 @@ class _PhoneNumberScreenState
                               height: 30,
 
                               color:
-                                  const Color(
-                                0xFFE2E8E5,
-                              ),
+                                  AppColors.border,
                             ),
 
                             // ==================================
@@ -451,9 +395,7 @@ class _PhoneNumberScreenState
                                   hintStyle:
                                       TextStyle(
                                     color:
-                                        Color(
-                                      0xFFA4ADB5,
-                                    ),
+                                        AppColors.textSecondary,
 
                                     fontSize:
                                         15,
@@ -476,9 +418,8 @@ class _PhoneNumberScreenState
                                 style:
                                     const TextStyle(
                                   color:
-                                      Color(
-                                    0xFF17212B,
-                                  ),
+                                      AppColors
+                                          .textPrimary,
 
                                   fontSize:
                                       17,
@@ -515,9 +456,7 @@ class _PhoneNumberScreenState
                             size: 18,
 
                             color:
-                                Color(
-                              0xFF00A88F,
-                            ),
+                                AppColors.secondary,
                           ),
 
                           const SizedBox(
@@ -533,9 +472,9 @@ class _PhoneNumberScreenState
                               style:
                                   TextStyle(
                                 color:
-                                    const Color(
-                                  0xFF737D88,
-                                ).withValues(
+                                    AppColors
+                                        .textSecondary
+                                        .withValues(
                                   alpha: 0.9,
                                 ),
 
@@ -590,14 +529,16 @@ class _PhoneNumberScreenState
                             ElevatedButton
                                 .styleFrom(
                           backgroundColor:
-                              const Color(
-                            0xFF00A88F,
-                          ),
+                              AppColors.primary,
 
                           disabledBackgroundColor:
-                              const Color(
-                            0xFF8CCFC3,
+                              AppColors.primary
+                                  .withValues(
+                            alpha: 0.45,
                           ),
+
+                          foregroundColor:
+                              AppColors.textOnPrimary,
 
                           elevation:
                               0,
@@ -623,7 +564,8 @@ class _PhoneNumberScreenState
                                           2.5,
 
                                       color:
-                                          Colors.white,
+                                          AppColors
+                                              .textOnPrimary,
                                     ),
                                   )
                                 : const Text(
@@ -632,7 +574,8 @@ class _PhoneNumberScreenState
                                     style:
                                         TextStyle(
                                       color:
-                                          Colors.white,
+                                          AppColors
+                                              .textOnPrimary,
 
                                       fontSize:
                                           16,
@@ -669,9 +612,8 @@ class _PhoneNumberScreenState
                           style:
                               TextStyle(
                             color:
-                                Color(
-                              0xFF8A949D,
-                            ),
+                                AppColors
+                                    .textSecondary,
 
                             fontSize:
                                 11.5,
@@ -693,9 +635,8 @@ class _PhoneNumberScreenState
                               style:
                                   TextStyle(
                                 color:
-                                    Color(
-                                  0xFF00A88F,
-                                ),
+                                    AppColors
+                                        .secondary,
 
                                 fontWeight:
                                     FontWeight.w600,
@@ -714,9 +655,8 @@ class _PhoneNumberScreenState
                               style:
                                   TextStyle(
                                 color:
-                                    Color(
-                                  0xFF00A88F,
-                                ),
+                                    AppColors
+                                        .secondary,
 
                                 fontWeight:
                                     FontWeight.w600,
@@ -741,4 +681,3 @@ class _PhoneNumberScreenState
     );
   }
 }
-

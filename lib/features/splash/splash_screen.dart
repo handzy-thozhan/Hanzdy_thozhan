@@ -1,14 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../services/location_service.dart';
 import '../../services/preferences_service.dart';
 
 import 'splash_controller.dart';
-import 'worker_ready_animation.dart';
 import 'notification_permission_screen.dart';
 
 import '../auth/phone_number_screen.dart';
+import '../home/worker_home_screen.dart';
 
 // ============================================================
 // SPLASH SCREEN
@@ -82,16 +85,19 @@ class _SplashScreenState
       _locationContentSlide;
 
   // ==========================================================
-  // GPS PING
+  // LOCATION FOUND LOTTIE
   // ==========================================================
 
-  late AnimationController _loaderController;
+  late AnimationController
+      _locationFoundController;
+
+  bool _showLocationFound = false;
+
+  bool _locationFoundStarted = false;
 
   // ==========================================================
-  // WORKER READY
+  // READY CONTENT
   // ==========================================================
-
-  bool _workerReady = false;
 
   bool _showLocationReady = false;
 
@@ -99,13 +105,13 @@ class _SplashScreenState
 
   bool _showReady = false;
 
+  bool _readyFlowStarted = false;
+
   // ==========================================================
-  // WORKER CONTROL
+  // GPS
   // ==========================================================
 
   bool _gpsSuccess = false;
-
-  bool _workerAnimationStarted = false;
 
   // ==========================================================
   // REGISTERED USER
@@ -113,17 +119,9 @@ class _SplashScreenState
 
   bool _registeredUser = false;
 
-  // ==========================================================
-  // WORKER ANIMATION KEY
-  // ==========================================================
-
-  final GlobalKey<WorkerReadyAnimationState>
-      _workerAnimationKey =
-      GlobalKey<WorkerReadyAnimationState>();
-
-  // ==========================================================
+  // ============================================================
   // INIT
-  // ==========================================================
+  // ============================================================
 
   @override
   void initState() {
@@ -173,7 +171,7 @@ class _SplashScreenState
     );
 
     // ========================================================
-    // LOCATION CONTENT
+    // LOCATION CONTENT ANIMATION
     // ========================================================
 
     _locationContentController =
@@ -217,22 +215,16 @@ class _SplashScreenState
     );
 
     // ========================================================
-    // GPS PING
-    //
-    // THIS IS YOUR ORIGINAL PING/BLINK ANIMATION.
+    // LOCATION FOUND LOTTIE CONTROLLER
     // ========================================================
 
-    _loaderController =
+    _locationFoundController =
         AnimationController(
       vsync: this,
-      duration:
-          const Duration(
-        milliseconds: 1300,
-      ),
-    )..repeat();
+    );
 
     // ========================================================
-    // START FLOWS
+    // START
     // ========================================================
 
     _startBrandIntro();
@@ -249,14 +241,12 @@ class _SplashScreenState
       '🎬 Starting Handzy Thozhan logo intro...',
     );
 
-    // 0 → 0.5 sec
     await _brandController.forward();
 
     if (!mounted) {
       return;
     }
 
-    // 0.5 → 1.5 sec
     await Future.delayed(
       const Duration(
         milliseconds: 1000,
@@ -267,7 +257,6 @@ class _SplashScreenState
       return;
     }
 
-    // 1.5 → 2 sec
     await _brandController.reverse();
 
     if (!mounted) {
@@ -289,23 +278,8 @@ class _SplashScreenState
       return;
     }
 
-    // ========================================================
-    // LOCATION CONTENT
-    // ========================================================
-
     await _locationContentController
         .forward();
-
-    if (!mounted) {
-      return;
-    }
-
-    // ========================================================
-    // IF GPS IS ALREADY READY
-    // START WORKER IMMEDIATELY
-    // ========================================================
-
-    await _tryStartWorkerAnimation();
   }
 
   // ============================================================
@@ -325,10 +299,6 @@ class _SplashScreenState
       return;
     }
 
-    // ========================================================
-    // LOCATION SETTINGS
-    // ========================================================
-
     if (_openedLocationSettings &&
         !loading) {
       debugPrint(
@@ -341,10 +311,6 @@ class _SplashScreenState
 
       return;
     }
-
-    // ========================================================
-    // APP SETTINGS
-    // ========================================================
 
     if (_openedAppSettings &&
         !loading) {
@@ -361,7 +327,7 @@ class _SplashScreenState
   }
 
   // ============================================================
-  // START LOCATION FLOW
+  // START APP
   // ============================================================
 
   Future<void> _startApp() async {
@@ -383,7 +349,11 @@ class _SplashScreenState
 
     _gpsSuccess = false;
 
-    _workerAnimationStarted = false;
+    _locationFoundStarted = false;
+
+    _readyFlowStarted = false;
+
+    _locationFoundController.reset();
 
     setState(() {
       loading = true;
@@ -394,7 +364,7 @@ class _SplashScreenState
 
       locationName = null;
 
-      _workerReady = false;
+      _showLocationFound = false;
 
       _showLocationReady = false;
 
@@ -413,7 +383,7 @@ class _SplashScreenState
     );
 
     // ========================================================
-    // SPLASH CONTROLLER
+    // EXISTING SPLASH CONTROLLER
     // ========================================================
 
     final SplashFlowResult result =
@@ -485,13 +455,6 @@ class _SplashScreenState
       '📍 Location: ${result.locationName}',
     );
 
-    // ========================================================
-    // IMPORTANT
-    //
-    // Location name is stored immediately.
-    // It will be visible in worker section.
-    // ========================================================
-
     setState(() {
       loading = false;
 
@@ -507,194 +470,72 @@ class _SplashScreenState
 
       _gpsSuccess = true;
 
-      // VERY IMPORTANT:
-      // Controller tells us registered status.
       _registeredUser =
           result.registeredUser;
+
+      _showLocationFound = true;
     });
 
     // ========================================================
-    // SHOW WORKER SECTION
+    // LOCATION FOUND ANIMATION
     // ========================================================
 
-    await _playWorkerReadyAnimation();
+    await _playLocationFoundAnimation();
 
     if (!mounted) {
       return;
     }
 
     // ========================================================
-    // TRY WORKER ANIMATION
-    //
-    // If logo still running:
-    //     wait.
-    //
-    // If logo already finished:
-    //     start immediately.
+    // READY CONTENT
     // ========================================================
 
-    await _tryStartWorkerAnimation();
+    await _showReadyContent();
+
+    if (!mounted) {
+      return;
+    }
+
+    // ========================================================
+    // CONTINUE
+    // ========================================================
+
+    await _continueAfterReady();
   }
 
   // ============================================================
-  // SHOW WORKER SECTION
+  // LOCATION FOUND ANIMATION
   // ============================================================
 
-  Future<void>
-      _playWorkerReadyAnimation() async {
+  Future<void> _playLocationFoundAnimation() async {
     if (!mounted) {
       return;
     }
 
     debugPrint(
-      '👷 Preparing worker animation section...',
+      '📍 Location Found animation starting...',
     );
 
-    setState(() {
-      _workerReady = true;
-
-      _showLocationReady = false;
-
-      _showArea = false;
-
-      _showReady = false;
-    });
-
     debugPrint(
-      '👷 Worker animation section displayed',
+      '📍 Location Found animation flow released',
     );
   }
 
   // ============================================================
-  // START WORKER VIDEO
+  // READY CONTENT
   // ============================================================
 
   Future<void>
-      _tryStartWorkerAnimation() async {
+      _showReadyContent() async {
     if (!mounted) {
       return;
     }
 
-    // ========================================================
-    // GPS MUST BE READY
-    // ========================================================
-
-    if (!_gpsSuccess) {
-      debugPrint(
-        '⏳ Waiting for GPS success...',
-      );
-
+    if (_readyFlowStarted) {
       return;
     }
 
-    // ========================================================
-    // LOGO MUST BE FINISHED
-    // ========================================================
-
-    if (_showBrandIntro) {
-      debugPrint(
-        '⏳ GPS done, waiting for logo...',
-      );
-
-      return;
-    }
-
-    // ========================================================
-    // PREVENT DUPLICATE PLAY
-    // ========================================================
-
-    if (_workerAnimationStarted) {
-      return;
-    }
-
-    // ========================================================
-    // WORKER WIDGET MUST EXIST
-    // ========================================================
-
-    if (!_workerReady) {
-      debugPrint(
-        '⏳ Worker section not displayed...',
-      );
-
-      return;
-    }
-
-    // ========================================================
-    // WAIT ONE FRAME
-    // ========================================================
-
-    await WidgetsBinding.instance
-        .endOfFrame;
-
-    if (!mounted) {
-      return;
-    }
-
-    WorkerReadyAnimationState?
-        workerState =
-        _workerAnimationKey.currentState;
-
-    // ========================================================
-    // WAIT FOR VIDEO WIDGET
-    // ========================================================
-
-    if (workerState == null) {
-      debugPrint(
-        '⏳ Waiting for worker video widget...',
-      );
-
-      await Future.delayed(
-        const Duration(
-          milliseconds: 100,
-        ),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      workerState =
-          _workerAnimationKey.currentState;
-    }
-
-    if (workerState == null) {
-      debugPrint(
-        '❌ Worker animation state unavailable',
-      );
-
-      return;
-    }
-
-    // ========================================================
-    // MARK STARTED
-    // ========================================================
-
-    _workerAnimationStarted = true;
-
-    debugPrint(
-      '👷 GPS + Logo ready → Worker animation START',
-    );
-
-    // ========================================================
-    // PLAY VIDEO
-    // ========================================================
-
-    await workerState.playAnimation();
-  }
-
-  // ============================================================
-  // WORKER VIDEO COMPLETED
-  // ============================================================
-
-  Future<void>
-      _handleWorkerAnimationComplete() async {
-    if (!mounted) {
-      return;
-    }
-
-    debugPrint(
-      '👷 Worker animation COMPLETED',
-    );
+    _readyFlowStarted = true;
 
     // ========================================================
     // LOCATION READY
@@ -706,6 +547,10 @@ class _SplashScreenState
       status =
           'Location ready';
     });
+
+    debugPrint(
+      '📍 Location ready',
+    );
 
     await Future.delayed(
       const Duration(
@@ -724,6 +569,10 @@ class _SplashScreenState
     setState(() {
       _showArea = true;
     });
+
+    debugPrint(
+      '📍 Work area shown: $locationName',
+    );
 
     await Future.delayed(
       const Duration(
@@ -747,8 +596,19 @@ class _SplashScreenState
     });
 
     debugPrint(
-      '👷 Worker is ready for work',
+      '🚀 Worker is ready to work',
     );
+  }
+
+  // ============================================================
+  // CONTINUE AFTER READY
+  // ============================================================
+
+  Future<void>
+      _continueAfterReady() async {
+    if (!mounted) {
+      return;
+    }
 
     await Future.delayed(
       const Duration(
@@ -761,11 +621,7 @@ class _SplashScreenState
     }
 
     // ========================================================
-    // REGISTERED USER
-    //
-    // IMPORTANT:
-    // Animation completes first.
-    // Then Home.
+    // REGISTERED USER → REAL HOME
     // ========================================================
 
     if (_registeredUser) {
@@ -774,7 +630,7 @@ class _SplashScreenState
       );
 
       debugPrint(
-        '🏠 Going to Home',
+        '🏠 Going to REAL HOME',
       );
 
       Navigator.pushReplacement(
@@ -800,10 +656,6 @@ class _SplashScreenState
       return;
     }
 
-    // ========================================================
-    // NOTIFICATION ALREADY COMPLETED
-    // ========================================================
-
     if (notificationCompleted) {
       debugPrint(
         '🔔 Notification already completed',
@@ -824,10 +676,6 @@ class _SplashScreenState
 
       return;
     }
-
-    // ========================================================
-    // FIRST TIME USER
-    // ========================================================
 
     debugPrint(
       '🔔 Opening Notification Permission',
@@ -884,10 +732,6 @@ class _SplashScreenState
       '📍 Allow Location button pressed',
     );
 
-    // ========================================================
-    // CHECK LOCATION SERVICE
-    // ========================================================
-
     final bool locationServiceEnabled =
         await LocationService
             .isLocationServiceEnabled();
@@ -908,10 +752,6 @@ class _SplashScreenState
 
       return;
     }
-
-    // ========================================================
-    // PERMANENT DENIAL
-    // ========================================================
 
     final bool permanentlyDenied =
         await LocationService
@@ -934,9 +774,9 @@ class _SplashScreenState
       return;
     }
 
-    // ========================================================
-    // RETRY
-    // ========================================================
+    debugPrint(
+      '📍 Requesting location normally...',
+    );
 
     await _startApp();
   }
@@ -955,7 +795,7 @@ class _SplashScreenState
     _locationContentController
         .dispose();
 
-    _loaderController.dispose();
+    _locationFoundController.dispose();
 
     super.dispose();
   }
@@ -1088,6 +928,23 @@ class _SplashScreenState
 
                           children: [
                             // ==================================
+                            // FETCHING LOCATION
+                            // ==================================
+
+                            if (loading)
+                              _buildGpsFetchingSection(),
+
+                            // ==================================
+                            // LOCATION FOUND
+                            // ==================================
+
+                            if (!loading &&
+                                !internetRequired &&
+                                !locationRequired &&
+                                _showLocationFound)
+                              _buildLocationFoundSection(),
+
+                            // ==================================
                             // INTERNET REQUIRED
                             // ==================================
 
@@ -1096,48 +953,19 @@ class _SplashScreenState
                               _buildInternetRequiredSection(),
 
                             // ==================================
-                            // GPS PING
-                            // ==================================
-
-                            if (loading)
-                              _buildGpsFetchingSection(),
-
-                            // ==================================
-                            // WORKER READY
-                            // ==================================
-
-                            if (!loading &&
-                                !internetRequired &&
-                                !locationRequired &&
-                                _workerReady)
-                              _buildWorkerReadySection(),
-
-                            // ==================================
                             // LOCATION REQUIRED
                             // ==================================
 
                             if (!loading &&
-                                !internetRequired &&
                                 locationRequired)
                               _buildLocationRequiredSection(),
 
-                            // ==================================================
-                            // IMPORTANT
-                            //
-                            // Footer is HIDDEN while worker flow
-                            // is running.
-                            //
-                            // So:
-                            //
-                            // Ping
-                            //   ↓
-                            // Worker animation
-                            //
-                            // No "HANDZY • WORK MADE EASY"
-                            // between them.
-                            // ==================================================
+                            // ==================================
+                            // FOOTER
+                            // ==================================
 
-                            if (!_workerReady)
+                            if (!_showLocationFound &&
+                                !_gpsSuccess)
                               const Column(
                                 children: [
                                   SizedBox(
@@ -1184,107 +1012,38 @@ class _SplashScreenState
   }
 
   // ============================================================
-  // GPS FETCHING SECTION
-  //
-  // THIS IS THE ORIGINAL PING UI.
+  // FETCHING LOCATION
   // ============================================================
 
   Widget _buildGpsFetchingSection() {
     return Column(
+      mainAxisSize:
+          MainAxisSize.min,
+
       children: [
         SizedBox(
           width:
-              150,
+              300,
 
           height:
-              150,
+              300,
 
           child:
-              AnimatedBuilder(
-            animation:
-                _loaderController,
+              Lottie.asset(
+            'assets/animations/'
+            'handzy_fetching_location.json',
 
-            builder:
-                (
-              BuildContext context,
-              Widget? child,
-            ) {
-              final double progress =
-                  _loaderController.value;
+            repeat:
+                true,
 
-              return Stack(
-                alignment:
-                    Alignment.center,
-
-                children: [
-                  _buildLoadingPulse(
-                    progress,
-                    145,
-                  ),
-
-                  _buildLoadingPulse(
-                    (progress + 0.45) %
-                        1.0,
-                    115,
-                  ),
-
-                  Container(
-                    width:
-                        76,
-
-                    height:
-                        76,
-
-                    decoration:
-                        BoxDecoration(
-                      shape:
-                          BoxShape.circle,
-
-                      color:
-                          AppColors
-                              .lightTeal,
-
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              AppColors
-                                  .secondary
-                                  .withValues(
-                            alpha:
-                                0.22,
-                          ),
-
-                          blurRadius:
-                              24,
-
-                          spreadRadius:
-                              4,
-                        ),
-                      ],
-                    ),
-
-                    child:
-                        const Icon(
-                      Icons
-                          .location_on_rounded,
-
-                      color:
-                          AppColors
-                              .primary,
-
-                      size:
-                          42,
-                    ),
-                  ),
-                ],
-              );
-            },
+            fit:
+                BoxFit.contain,
           ),
         ),
 
         const SizedBox(
           height:
-              20,
+              10,
         ),
 
         const Text(
@@ -1296,15 +1055,13 @@ class _SplashScreenState
           style:
               TextStyle(
             color:
-                AppColors
-                    .primary,
+                AppColors.primary,
 
             fontSize:
                 19,
 
             fontWeight:
-                FontWeight
-                    .w800,
+                FontWeight.w800,
           ),
         ),
 
@@ -1322,8 +1079,7 @@ class _SplashScreenState
           style:
               TextStyle(
             color:
-                AppColors
-                    .textSecondary
+                AppColors.textSecondary
                     .withValues(
               alpha:
                   0.80,
@@ -1333,8 +1089,7 @@ class _SplashScreenState
                 13,
 
             fontWeight:
-                FontWeight
-                    .w500,
+                FontWeight.w500,
           ),
         ),
       ],
@@ -1342,86 +1097,56 @@ class _SplashScreenState
   }
 
   // ============================================================
-  // GPS PULSE
+  // LOCATION FOUND
   // ============================================================
 
-  Widget _buildLoadingPulse(
-    double progress,
-    double maxSize,
-  ) {
-    final double safeProgress =
-        progress.clamp(
-      0.0,
-      1.0,
-    );
+  Widget _buildLocationFoundSection() {
+    return Column(
+      mainAxisSize:
+          MainAxisSize.min,
 
-    final double size =
-        70 +
-        ((maxSize - 70) *
-            safeProgress);
+      children: [
+        SizedBox(
+          width:
+              300,
 
-    final double opacity =
-        (1.0 - safeProgress) *
-        0.28;
+          height:
+              300,
 
-    return Opacity(
-      opacity:
-          opacity,
+          child:
+              Lottie.asset(
+            'assets/animations/'
+            'handzy_location_found.json',
 
-      child:
-          Container(
-        width:
-            size,
+            controller:
+                _locationFoundController,
 
-        height:
-            size,
+            repeat:
+                false,
 
-        decoration:
-            BoxDecoration(
-          shape:
-              BoxShape.circle,
+            fit:
+                BoxFit.contain,
 
-          border:
-              Border.all(
-            color:
-                AppColors
-                    .secondary,
+            onLoaded: (
+              LottieComposition composition,
+            ) {
+              _locationFoundController
+                  .duration =
+                  composition.duration;
 
-            width:
-                2,
+              if (!_locationFoundStarted) {
+                _locationFoundStarted = true;
+
+                debugPrint(
+                  '📍 Location Found Lottie started',
+                );
+
+                _locationFoundController
+                    .forward();
+              }
+            },
           ),
         ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // WORKER READY SECTION
-  // ============================================================
-
-  Widget _buildWorkerReadySection() {
-    return Column(
-      children: [
-        // ======================================================
-        // WORKER VIDEO
-        // ======================================================
-
-        WorkerReadyAnimation(
-          key:
-              _workerAnimationKey,
-
-          onComplete:
-              _handleWorkerAnimationComplete,
-        ),
-
-        const SizedBox(
-          height:
-              4,
-        ),
-
-        // ======================================================
-        // LOCATION READY
-        // ======================================================
 
         AnimatedOpacity(
           duration:
@@ -1445,16 +1170,13 @@ class _SplashScreenState
             style:
                 TextStyle(
               color:
-                  Color(
-                0xFF009375,
-              ),
+                  AppColors.primary,
 
               fontSize:
                   20,
 
               fontWeight:
-                  FontWeight
-                      .w800,
+                  FontWeight.w800,
             ),
           ),
         ),
@@ -1463,10 +1185,6 @@ class _SplashScreenState
           height:
               10,
         ),
-
-        // ======================================================
-        // WORK AREA / CURRENT LOCATION
-        // ======================================================
 
         AnimatedOpacity(
           duration:
@@ -1486,19 +1204,19 @@ class _SplashScreenState
               const Text(
                 'Your work area',
 
+                textAlign:
+                    TextAlign.center,
+
                 style:
                     TextStyle(
                   color:
-                      Color(
-                    0xFF737D88,
-                  ),
+                      AppColors.textSecondary,
 
                   fontSize:
                       14,
 
                   fontWeight:
-                      FontWeight
-                          .w500,
+                      FontWeight.w500,
                 ),
               ),
 
@@ -1517,16 +1235,13 @@ class _SplashScreenState
                 style:
                     const TextStyle(
                   color:
-                      Color(
-                    0xFF009375,
-                  ),
+                      AppColors.primary,
 
                   fontSize:
                       28,
 
                   fontWeight:
-                      FontWeight
-                          .w800,
+                      FontWeight.w800,
                 ),
               ),
             ],
@@ -1537,10 +1252,6 @@ class _SplashScreenState
           height:
               13,
         ),
-
-        // ======================================================
-        // READY
-        // ======================================================
 
         AnimatedOpacity(
           duration:
@@ -1558,19 +1269,19 @@ class _SplashScreenState
               const Text(
             'Ready to work 🚀',
 
+            textAlign:
+                TextAlign.center,
+
             style:
                 TextStyle(
               color:
-                  Color(
-                0xFF17212B,
-              ),
+                  AppColors.textPrimary,
 
               fontSize:
                   16,
 
               fontWeight:
-                  FontWeight
-                      .w600,
+                  FontWeight.w600,
             ),
           ),
         ),
@@ -1599,14 +1310,12 @@ class _SplashScreenState
                 BoxShape.circle,
 
             color:
-                AppColors
-                    .lightTeal,
+                AppColors.lightTeal,
 
             boxShadow: [
               BoxShadow(
                 color:
-                    AppColors
-                        .secondary
+                    AppColors.secondary
                         .withValues(
                   alpha:
                       0.18,
@@ -1623,12 +1332,10 @@ class _SplashScreenState
 
           child:
               const Icon(
-            Icons
-                .wifi_off_rounded,
+            Icons.wifi_off_rounded,
 
             color:
-                AppColors
-                    .primary,
+                AppColors.primary,
 
             size:
                 40,
@@ -1649,15 +1356,13 @@ class _SplashScreenState
           style:
               TextStyle(
             color:
-                AppColors
-                    .textPrimary,
+                AppColors.textPrimary,
 
             fontSize:
                 22,
 
             fontWeight:
-                FontWeight
-                    .w800,
+                FontWeight.w800,
           ),
         ),
 
@@ -1676,8 +1381,7 @@ class _SplashScreenState
           style:
               TextStyle(
             color:
-                AppColors
-                    .textSecondary,
+                AppColors.textSecondary,
 
             fontSize:
                 14,
@@ -1707,17 +1411,14 @@ class _SplashScreenState
             child:
                 const Row(
               mainAxisAlignment:
-                  MainAxisAlignment
-                      .center,
+                  MainAxisAlignment.center,
 
               children: [
                 Icon(
-                  Icons
-                      .wifi_rounded,
+                  Icons.wifi_rounded,
 
                   color:
-                      AppColors
-                          .textOnPrimary,
+                      AppColors.textOnPrimary,
                 ),
 
                 SizedBox(
@@ -1734,8 +1435,7 @@ class _SplashScreenState
                         16,
 
                     fontWeight:
-                        FontWeight
-                            .w700,
+                        FontWeight.w700,
                   ),
                 ),
               ],
@@ -1767,18 +1467,15 @@ class _SplashScreenState
                 BoxShape.circle,
 
             color:
-                AppColors
-                    .lightTeal,
+                AppColors.lightTeal,
           ),
 
           child:
               const Icon(
-            Icons
-                .location_off_rounded,
+            Icons.location_off_rounded,
 
             color:
-                AppColors
-                    .primary,
+                AppColors.primary,
 
             size:
                 34,
@@ -1799,15 +1496,13 @@ class _SplashScreenState
           style:
               TextStyle(
             color:
-                AppColors
-                    .textPrimary,
+                AppColors.textPrimary,
 
             fontSize:
                 22,
 
             fontWeight:
-                FontWeight
-                    .w800,
+                FontWeight.w800,
           ),
         ),
 
@@ -1826,8 +1521,7 @@ class _SplashScreenState
           style:
               TextStyle(
             color:
-                AppColors
-                    .textSecondary,
+                AppColors.textSecondary,
 
             fontSize:
                 14,
@@ -1864,56 +1558,12 @@ class _SplashScreenState
                     16,
 
                 fontWeight:
-                    FontWeight
-                        .w700,
+                    FontWeight.w700,
               ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-// ============================================================
-// TEMPORARY HOME SCREEN
-// ============================================================
-//
-// IMPORTANT:
-// Un actual HomeScreen ready aana,
-// indha class-ai actual HomeScreen-ku replace pannuvom.
-// ============================================================
-
-class WorkerHomeScreen
-    extends StatelessWidget {
-  const WorkerHomeScreen({
-    super.key,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Scaffold(
-      backgroundColor:
-          AppColors.background,
-
-      body:
-          const Center(
-        child:
-            Text(
-          'Worker Home',
-
-          style:
-              TextStyle(
-            fontSize:
-                28,
-
-            fontWeight:
-                FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 }

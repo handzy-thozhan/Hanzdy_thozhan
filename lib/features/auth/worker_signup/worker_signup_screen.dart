@@ -4,8 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../services/preferences_service.dart';
+import '../../home/worker_home_screen.dart';
 
 class WorkerSignupScreen extends StatefulWidget {
   const WorkerSignupScreen({
@@ -19,44 +22,13 @@ class WorkerSignupScreen extends StatefulWidget {
 
 class _WorkerSignupScreenState
     extends State<WorkerSignupScreen> {
-  // ============================================================
-  // COLORS
-  // ============================================================
-
-  static const Color primaryColor =
-      Color(0xFF00A88F);
-
-  static const Color darkColor =
-      Color(0xFF17232E);
-
-  static const Color greyColor =
-      Color(0xFF74808C);
-
-  static const Color backgroundColor =
-      Color(0xFFF7FAFB);
-
-  static const Color borderColor =
-      Color(0xFFDDE4E7);
-
-  // ============================================================
-  // CONTROLLERS
-  // ============================================================
-
   final TextEditingController _nameController =
       TextEditingController();
-
-  // ============================================================
-  // IMAGE PICKER
-  // ============================================================
 
   final ImagePicker _imagePicker =
       ImagePicker();
 
   File? _profileImage;
-
-  // ============================================================
-  // FORM VALUES
-  // ============================================================
 
   String? _selectedBloodGroup;
 
@@ -64,9 +36,8 @@ class _WorkerSignupScreenState
 
   bool _isLoading = false;
 
-  // ============================================================
-  // DISPOSE
-  // ============================================================
+  static const String _defaultProfileImage =
+      'assets/image/handzy_worker.png';
 
   @override
   void dispose() {
@@ -75,32 +46,70 @@ class _WorkerSignupScreenState
   }
 
   // ============================================================
-  // PICK IMAGE
+  // CAMERA ONLY
   // ============================================================
 
-  Future<void> _pickProfileImage() async {
+  Future<void> _takeProfilePhoto() async {
     try {
       final XFile? pickedImage =
           await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: ImageSource.camera,
         imageQuality: 85,
+        preferredCameraDevice:
+            CameraDevice.front,
       );
 
       if (pickedImage == null) {
         return;
       }
 
-      setState(() {
-        _profileImage =
-            File(pickedImage.path);
-      });
-    } catch (e) {
-      debugPrint(
-        '❌ Image picker error: $e',
+      final Directory appDirectory =
+          await getApplicationDocumentsDirectory();
+
+      final Directory profileDirectory =
+          Directory(
+        '${appDirectory.path}/worker_profile',
       );
 
+      if (!await profileDirectory.exists()) {
+        await profileDirectory.create(
+          recursive: true,
+        );
+      }
+
+      final String filePath =
+          '${profileDirectory.path}/profile_photo.jpg';
+
+      final File savedImage =
+          await File(pickedImage.path)
+              .copy(filePath);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _profileImage = savedImage;
+      });
+
+      debugPrint(
+        '📸 Worker profile photo captured',
+      );
+
+      debugPrint(
+        '💾 Local photo saved: ${savedImage.path}',
+      );
+    } catch (e) {
+      debugPrint(
+        '❌ Camera error: $e',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
       _showMessage(
-        'Unable to select image',
+        'Unable to open camera. Please try again.',
       );
     }
   }
@@ -125,7 +134,7 @@ class _WorkerSignupScreenState
         await showModalBottomSheet<String>(
       context: context,
       backgroundColor:
-          Colors.white,
+          AppColors.background,
       shape:
           const RoundedRectangleBorder(
         borderRadius:
@@ -134,39 +143,48 @@ class _WorkerSignupScreenState
         ),
       ),
       builder:
-          (BuildContext context) {
+          (context) {
         return SafeArea(
-          child: Padding(
+          child:
+              Padding(
             padding:
-                const EdgeInsets.all(24),
-            child: Column(
+                const EdgeInsets.all(
+              24,
+            ),
+            child:
+                Column(
               mainAxisSize:
                   MainAxisSize.min,
               children: [
                 const Text(
                   'Select Blood Group',
-                  style: TextStyle(
-                    color: darkColor,
-                    fontSize: 21,
+                  style:
+                      TextStyle(
+                    color:
+                        AppColors.textPrimary,
+                    fontSize:
+                        21,
                     fontWeight:
                         FontWeight.w800,
                   ),
                 ),
-
                 const SizedBox(
-                  height: 15,
+                  height:
+                      15,
                 ),
-
                 ...groups.map(
-                  (String group) {
+                  (group) {
                     return ListTile(
-                      title: Text(
+                      title:
+                          Text(
                         group,
                         style:
                             const TextStyle(
                           color:
-                              darkColor,
-                          fontSize: 18,
+                              AppColors
+                                  .textPrimary,
+                          fontSize:
+                              18,
                           fontWeight:
                               FontWeight.w600,
                         ),
@@ -178,7 +196,8 @@ class _WorkerSignupScreenState
                                   Icons
                                       .check_circle,
                                   color:
-                                      primaryColor,
+                                      AppColors
+                                          .primary,
                                 )
                               : null,
                       onTap: () {
@@ -210,14 +229,15 @@ class _WorkerSignupScreenState
   }
 
   // ============================================================
-  // VALIDATE FORM
+  // VALIDATION
   // ============================================================
 
   bool _validateForm() {
     if (_profileImage == null) {
       _showMessage(
-        'Please add your profile photo',
+        'Please take your profile photo',
       );
+
       return false;
     }
 
@@ -227,6 +247,7 @@ class _WorkerSignupScreenState
       _showMessage(
         'Please enter your full name',
       );
+
       return false;
     }
 
@@ -234,6 +255,17 @@ class _WorkerSignupScreenState
       _showMessage(
         'Please select your blood group',
       );
+
+      return false;
+    }
+
+    if (_selectedGender
+        .trim()
+        .isEmpty) {
+      _showMessage(
+        'Please select your gender',
+      );
+
       return false;
     }
 
@@ -260,6 +292,7 @@ class _WorkerSignupScreenState
       _showMessage(
         'Your verification session has expired. Please verify again.',
       );
+
       return;
     }
 
@@ -271,6 +304,9 @@ class _WorkerSignupScreenState
       final String phoneNumber =
           user.phoneNumber ?? '';
 
+      final String localPhotoPath =
+          _profileImage!.path;
+
       debugPrint(
         '📝 Creating worker profile',
       );
@@ -279,8 +315,12 @@ class _WorkerSignupScreenState
         '📱 Phone: $phoneNumber',
       );
 
+      debugPrint(
+        '📸 Photo: $localPhotoPath',
+      );
+
       // ========================================================
-      // SAVE WORKER DETAILS TO FIRESTORE
+      // FIRESTORE
       // ========================================================
 
       await FirebaseFirestore.instance
@@ -288,7 +328,8 @@ class _WorkerSignupScreenState
           .doc(user.uid)
           .set(
         <String, dynamic>{
-          'uid': user.uid,
+          'uid':
+              user.uid,
 
           'phoneNumber':
               phoneNumber,
@@ -303,18 +344,15 @@ class _WorkerSignupScreenState
           'gender':
               _selectedGender,
 
-          // Profile image upload will be
-          // connected later.
+          // Local device photo path
           'profileImage':
-              '',
+              localPhotoPath,
 
           'createdAt':
-              FieldValue
-                  .serverTimestamp(),
+              FieldValue.serverTimestamp(),
 
           'updatedAt':
-              FieldValue
-                  .serverTimestamp(),
+              FieldValue.serverTimestamp(),
         },
         SetOptions(
           merge: true,
@@ -322,30 +360,13 @@ class _WorkerSignupScreenState
       );
 
       debugPrint(
-        '✅ Worker profile saved',
+        '✅ Worker profile saved to Firestore',
       );
-
-      // ========================================================
-      // SAVE PHONE NUMBER LOCALLY
-      // ========================================================
 
       await PreferencesService
           .savePhoneNumber(
         phoneNumber,
       );
-
-      debugPrint(
-        '💾 Phone number saved locally',
-      );
-
-      // ========================================================
-      // USER REGISTERED = TRUE
-      //
-      // VERY IMPORTANT:
-      //
-      // This is set ONLY after Firestore
-      // worker profile creation succeeds.
-      // ========================================================
 
       await PreferencesService
           .setUserRegistered(true);
@@ -353,10 +374,6 @@ class _WorkerSignupScreenState
       debugPrint(
         '💾 user_registered = true',
       );
-
-      // ========================================================
-      // SIGNUP SUCCESS
-      // ========================================================
 
       if (!mounted) {
         return;
@@ -384,12 +401,11 @@ class _WorkerSignupScreenState
         context,
         MaterialPageRoute(
           builder:
-              (BuildContext context) {
+              (context) {
             return const WorkerHomeScreen();
           },
         ),
-        (Route<dynamic> route) =>
-            false,
+        (route) => false,
       );
     } catch (e) {
       debugPrint(
@@ -445,17 +461,24 @@ class _WorkerSignupScreenState
     required Widget child,
   }) {
     return Container(
-      width: double.infinity,
+      width:
+          double.infinity,
       decoration:
           BoxDecoration(
-        color: Colors.white,
+        color:
+            AppColors.background,
         borderRadius:
-            BorderRadius.circular(16),
-        border: Border.all(
-          color: borderColor,
+            BorderRadius.circular(
+          16,
+        ),
+        border:
+            Border.all(
+          color:
+              AppColors.border,
         ),
       ),
-      child: child,
+      child:
+          child,
     );
   }
 
@@ -470,44 +493,67 @@ class _WorkerSignupScreenState
         _selectedGender ==
             gender;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedGender =
-              gender;
-        });
-      },
-      child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
-        children: [
-          Icon(
-            selected
-                ? Icons
-                    .radio_button_checked
-                : Icons
-                    .radio_button_unchecked,
-            color: selected
-                ? primaryColor
-                : greyColor,
-            size: 24,
-          ),
-
-          const SizedBox(
-            width: 6,
-          ),
-
-          Text(
-            gender,
-            style:
-                const TextStyle(
-              color: darkColor,
-              fontSize: 15,
-              fontWeight:
-                  FontWeight.w500,
+    return Expanded(
+      child:
+          GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedGender =
+                gender;
+          });
+        },
+        child:
+            Container(
+          height:
+              66,
+          decoration:
+              BoxDecoration(
+            color:
+                selected
+                    ? AppColors.lightTeal
+                    : AppColors.background,
+            borderRadius:
+                BorderRadius.circular(
+              14,
             ),
           ),
-        ],
+          child:
+              Row(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+            children: [
+              Icon(
+                selected
+                    ? Icons
+                        .radio_button_checked
+                    : Icons
+                        .radio_button_unchecked,
+                color:
+                    selected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                size:
+                    24,
+              ),
+              const SizedBox(
+                width:
+                    7,
+              ),
+              Text(
+                gender,
+                style:
+                    const TextStyle(
+                  color:
+                      AppColors.textPrimary,
+                  fontSize:
+                      15,
+                  fontWeight:
+                      FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -522,42 +568,152 @@ class _WorkerSignupScreenState
     required String subtitle,
   }) {
     return Expanded(
-      child: Column(
+      child:
+          Column(
         children: [
-          Icon(
-            icon,
-            color:
-                primaryColor,
-            size: 30,
+          Container(
+            width:
+                52,
+            height:
+                52,
+            decoration:
+                const BoxDecoration(
+              color:
+                  AppColors.lightTeal,
+              shape:
+                  BoxShape.circle,
+            ),
+            child:
+                Icon(
+              icon,
+              color:
+                  AppColors.primary,
+              size:
+                  29,
+            ),
           ),
-
           const SizedBox(
-            height: 5,
+            height:
+                8,
           ),
-
           Text(
             title,
             style:
                 const TextStyle(
-              color: darkColor,
-              fontSize: 13,
+              color:
+                  AppColors.textPrimary,
+              fontSize:
+                  14,
               fontWeight:
                   FontWeight.w800,
             ),
           ),
-
           const SizedBox(
-            height: 3,
+            height:
+                3,
           ),
-
           Text(
             subtitle,
             textAlign:
                 TextAlign.center,
             style:
                 const TextStyle(
-              color: greyColor,
-              fontSize: 9,
+              color:
+                  AppColors.textSecondary,
+              fontSize:
+                  10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PROFILE PHOTO
+  // ============================================================
+
+  Widget _buildProfilePhoto() {
+    return GestureDetector(
+      onTap:
+          _takeProfilePhoto,
+      child:
+          Stack(
+        alignment:
+            Alignment.center,
+        children: [
+          Container(
+            width:
+                190,
+            height:
+                190,
+            decoration:
+                BoxDecoration(
+              shape:
+                  BoxShape.circle,
+              color:
+                  AppColors.lightTeal,
+              border:
+                  Border.all(
+                color:
+                    AppColors.primary,
+                width:
+                    2.5,
+              ),
+            ),
+            child:
+                ClipOval(
+              child:
+                  _profileImage !=
+                          null
+                      ? Image.file(
+                          _profileImage!,
+                          width:
+                              190,
+                          height:
+                              190,
+                          fit:
+                              BoxFit.cover,
+                        )
+                      : Image.asset(
+                          _defaultProfileImage,
+                          width:
+                              190,
+                          height:
+                              190,
+                          fit:
+                              BoxFit.cover,
+                        ),
+            ),
+          ),
+          Positioned(
+            right:
+                5,
+            bottom:
+                7,
+            child:
+                Container(
+              width:
+                  58,
+              height:
+                  58,
+              decoration:
+                  const BoxDecoration(
+                color:
+                    AppColors.primary,
+                shape:
+                    BoxShape.circle,
+              ),
+              child:
+                  const Icon(
+                Icons
+                    .camera_alt_rounded,
+                color:
+                    AppColors
+                        .textOnPrimary,
+                size:
+                    30,
+              ),
             ),
           ),
         ],
@@ -575,749 +731,502 @@ class _WorkerSignupScreenState
   ) {
     return Scaffold(
       backgroundColor:
-          backgroundColor,
-
+          AppColors.background,
       resizeToAvoidBottomInset:
           true,
-
-      body: SafeArea(
+      body:
+          SafeArea(
         child:
             SingleChildScrollView(
           physics:
               const BouncingScrollPhysics(),
-
-          child: Column(
+          padding:
+              const EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            30,
+          ),
+          child:
+              Column(
             children: [
-              // ==================================================
-              // TOP SECTION
-              // ==================================================
+              _buildProfilePhoto(),
+
+              const SizedBox(
+                height:
+                    20,
+              ),
+
+              const Text(
+                'Add Profile Photo',
+                textAlign:
+                    TextAlign.center,
+                style:
+                    TextStyle(
+                  color:
+                      AppColors.textPrimary,
+                  fontSize:
+                      28,
+                  fontWeight:
+                      FontWeight.w800,
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    8,
+              ),
+
+              const Text(
+                'Let’s get you started!',
+                textAlign:
+                    TextAlign.center,
+                style:
+                    TextStyle(
+                  color:
+                      AppColors.textSecondary,
+                  fontSize:
+                      17,
+                  fontWeight:
+                      FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    16,
+              ),
+
+              Container(
+                width:
+                    50,
+                height:
+                    5,
+                decoration:
+                    BoxDecoration(
+                  color:
+                      AppColors.secondary,
+                  borderRadius:
+                      BorderRadius.circular(
+                    10,
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    32,
+              ),
+
+              const Align(
+                alignment:
+                    Alignment.centerLeft,
+                child:
+                    Text(
+                  'Full Name',
+                  style:
+                      TextStyle(
+                    color:
+                        AppColors.textPrimary,
+                    fontSize:
+                        19,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    10,
+              ),
+
+              _fieldContainer(
+                child:
+                    TextField(
+                  controller:
+                      _nameController,
+                  textCapitalization:
+                      TextCapitalization
+                          .words,
+                  style:
+                      const TextStyle(
+                    color:
+                        AppColors.textPrimary,
+                    fontSize:
+                        17,
+                    fontWeight:
+                        FontWeight.w500,
+                  ),
+                  decoration:
+                      const InputDecoration(
+                    border:
+                        InputBorder.none,
+                    prefixIcon:
+                        Icon(
+                      Icons
+                          .person_outline_rounded,
+                      color:
+                          AppColors.primary,
+                      size:
+                          29,
+                    ),
+                    hintText:
+                        'Enter your full name',
+                    hintStyle:
+                        TextStyle(
+                      color:
+                          AppColors.textSecondary,
+                      fontSize:
+                          17,
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(
+                      vertical:
+                          19,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    28,
+              ),
+
+              const Align(
+                alignment:
+                    Alignment.centerLeft,
+                child:
+                    Text(
+                  'Blood Group',
+                  style:
+                      TextStyle(
+                    color:
+                        AppColors.textPrimary,
+                    fontSize:
+                        19,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    10,
+              ),
+
+              GestureDetector(
+                onTap:
+                    _selectBloodGroup,
+                child:
+                    _fieldContainer(
+                  child:
+                      Padding(
+                    padding:
+                        const EdgeInsets
+                            .symmetric(
+                      horizontal:
+                          16,
+                      vertical:
+                          18,
+                    ),
+                    child:
+                        Row(
+                      children: [
+                        const Icon(
+                          Icons
+                              .bloodtype_outlined,
+                          color:
+                              AppColors.primary,
+                          size:
+                              30,
+                        ),
+                        const SizedBox(
+                          width:
+                              14,
+                        ),
+                        Expanded(
+                          child:
+                              Text(
+                            _selectedBloodGroup ??
+                                'Select your blood group',
+                            style:
+                                TextStyle(
+                              color:
+                                  _selectedBloodGroup ==
+                                          null
+                                      ? AppColors
+                                          .textSecondary
+                                      : AppColors
+                                          .textPrimary,
+                              fontSize:
+                                  17,
+                              fontWeight:
+                                  FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons
+                              .keyboard_arrow_down_rounded,
+                          color:
+                              AppColors
+                                  .textSecondary,
+                          size:
+                              30,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    28,
+              ),
+
+              const Align(
+                alignment:
+                    Alignment.centerLeft,
+                child:
+                    Text(
+                  'Gender',
+                  style:
+                      TextStyle(
+                    color:
+                        AppColors.textPrimary,
+                    fontSize:
+                        19,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    10,
+              ),
+
+              _fieldContainer(
+                child:
+                    Padding(
+                  padding:
+                      const EdgeInsets.all(
+                    4,
+                  ),
+                  child:
+                      Row(
+                    children: [
+                      _genderItem(
+                        'Male',
+                      ),
+                      Container(
+                        width:
+                            1,
+                        height:
+                            48,
+                        color:
+                            AppColors.border,
+                      ),
+                      _genderItem(
+                        'Female',
+                      ),
+                      Container(
+                        width:
+                            1,
+                        height:
+                            48,
+                        color:
+                            AppColors.border,
+                      ),
+                      _genderItem(
+                        'Other',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    28,
+              ),
+
+              SizedBox(
+                width:
+                    double.infinity,
+                height:
+                    60,
+                child:
+                    ElevatedButton(
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : _createAccount,
+                  style:
+                      ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.primary,
+                    foregroundColor:
+                        AppColors
+                            .textOnPrimary,
+                    disabledBackgroundColor:
+                        AppColors.primary
+                            .withValues(
+                      alpha:
+                          0.6,
+                    ),
+                    elevation:
+                        0,
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                        16,
+                      ),
+                    ),
+                  ),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                              width:
+                                  25,
+                              height:
+                                  25,
+                              child:
+                                  CircularProgressIndicator(
+                                color:
+                                    AppColors
+                                        .textOnPrimary,
+                                strokeWidth:
+                                    3,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment
+                                      .center,
+                              children: [
+                                Text(
+                                  'Create Account',
+                                  style:
+                                      TextStyle(
+                                    color:
+                                        AppColors
+                                            .textOnPrimary,
+                                    fontSize:
+                                        18,
+                                    fontWeight:
+                                        FontWeight.w800,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width:
+                                      16,
+                                ),
+                                Icon(
+                                  Icons
+                                      .arrow_forward_rounded,
+                                  color:
+                                      AppColors
+                                          .textOnPrimary,
+                                  size:
+                                      30,
+                                ),
+                              ],
+                            ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    30,
+              ),
 
               Container(
                 width:
                     double.infinity,
-
                 padding:
-                    const EdgeInsets
-                        .fromLTRB(
-                  24,
-                  35,
-                  24,
-                  25,
-                ),
-
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-
-                  children: [
-                    // ==================================================
-                    // TITLE
-                    // ==================================================
-
-                    const Text(
-                      'Join Handzy\nThozhan',
-                      style:
-                          TextStyle(
-                        color:
-                            darkColor,
-                        fontSize:
-                            38,
-                        height:
-                            1.05,
-                        fontWeight:
-                            FontWeight.w800,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 12,
-                    ),
-
-                    const Text(
-                      'Create your worker profile\n'
-                      'and start your journey with us.',
-                      style:
-                          TextStyle(
-                        color:
-                            greyColor,
-                        fontSize:
-                            17,
-                        height:
-                            1.45,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 22,
-                    ),
-
-                    // ==================================================
-                    // QUOTE
-                    // ==================================================
-
-                    Container(
-                      width:
-                          double.infinity,
-
-                      padding:
-                          const EdgeInsets
-                              .all(
-                        18,
-                      ),
-
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            const Color(
-                          0xFFE9F8F5,
-                        ),
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          18,
-                        ),
-                      ),
-
-                      child:
-                          const Text(
-                        '“Your skills can make someone’s day better.”',
-                        style:
-                            TextStyle(
-                          color:
-                              darkColor,
-                          fontSize:
-                              16,
-                          height:
-                              1.4,
-                          fontWeight:
-                              FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ==================================================
-              // SIGNUP CARD
-              // ==================================================
-
-              Container(
-                margin:
                     const EdgeInsets
                         .symmetric(
-                  horizontal: 18,
+                  vertical:
+                      24,
+                  horizontal:
+                      10,
                 ),
-
-                padding:
-                    const EdgeInsets
-                        .fromLTRB(
-                  18,
-                  24,
-                  18,
-                  25,
-                ),
-
                 decoration:
                     BoxDecoration(
                   color:
-                      Colors.white,
-
+                      AppColors.card,
                   borderRadius:
-                      BorderRadius
-                          .circular(
-                    26,
+                      BorderRadius.circular(
+                    20,
                   ),
-
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          Colors.black
-                              .withValues(
-                        alpha:
-                            0.05,
-                      ),
-                      blurRadius:
-                          25,
-                      offset:
-                          const Offset(
-                        0,
-                        8,
-                      ),
-                    ),
-                  ],
+                  border:
+                      Border.all(
+                    color:
+                        AppColors.border,
+                  ),
                 ),
-
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-
-                  children: [
-                    // ==================================================
-                    // TITLE
-                    // ==================================================
-
-                    const Text(
-                      'Your Details',
-                      style:
-                          TextStyle(
-                        color:
-                            darkColor,
-                        fontSize:
-                            25,
-                        fontWeight:
-                            FontWeight.w800,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 5,
-                    ),
-
-                    const Text(
-                      'Tell us a little about yourself.',
-                      style:
-                          TextStyle(
-                        color:
-                            greyColor,
-                        fontSize:
-                            14,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 22,
-                    ),
-
-                    // ==================================================
-                    // PROFILE IMAGE
-                    // ==================================================
-
-                    Center(
-                      child:
-                          GestureDetector(
-                        onTap:
-                            _pickProfileImage,
-
-                        child:
-                            Stack(
-                          children: [
-                            Container(
-                              width:
-                                  110,
-                              height:
-                                  110,
-
-                              decoration:
-                                  BoxDecoration(
-                                shape:
-                                    BoxShape.circle,
-
-                                color:
-                                    const Color(
-                                  0xFFE9F8F5,
-                                ),
-
-                                border:
-                                    Border.all(
-                                  color:
-                                      primaryColor,
-                                  width:
-                                      2,
-                                ),
-
-                                image:
-                                    _profileImage !=
-                                            null
-                                        ? DecorationImage(
-                                            image:
-                                                FileImage(
-                                              _profileImage!,
-                                            ),
-                                            fit:
-                                                BoxFit.cover,
-                                          )
-                                        : null,
-                              ),
-
-                              child:
-                                  _profileImage ==
-                                          null
-                                      ? const Icon(
-                                          Icons
-                                              .person_rounded,
-                                          color:
-                                              primaryColor,
-                                          size:
-                                              55,
-                                        )
-                                      : null,
-                            ),
-
-                            Positioned(
-                              right:
-                                  0,
-                              bottom:
-                                  0,
-
-                              child:
-                                  Container(
-                                width:
-                                    35,
-                                height:
-                                    35,
-
-                                decoration:
-                                    const BoxDecoration(
-                                  color:
-                                      primaryColor,
-                                  shape:
-                                      BoxShape.circle,
-                                ),
-
-                                child:
-                                    const Icon(
-                                  Icons
-                                      .camera_alt_rounded,
-                                  color:
-                                      Colors.white,
-                                  size:
-                                      19,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    const Center(
-                      child:
-                          Text(
-                        'Add Profile Photo',
-                        style:
-                            TextStyle(
-                          color:
-                              greyColor,
-                          fontSize:
-                              14,
-                          fontWeight:
-                              FontWeight.w600,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 24,
-                    ),
-
-                    // ==================================================
-                    // FULL NAME
-                    // ==================================================
-
-                    const Text(
-                      'Full Name',
-                      style:
-                          TextStyle(
-                        color:
-                            darkColor,
-                        fontSize:
-                            15,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 8,
-                    ),
-
-                    _fieldContainer(
-                      child:
-                          TextField(
-                        controller:
-                            _nameController,
-
-                        textCapitalization:
-                            TextCapitalization
-                                .words,
-
-                        style:
-                            const TextStyle(
-                          color:
-                              darkColor,
-                          fontSize:
-                              16,
-                        ),
-
-                        decoration:
-                            const InputDecoration(
-                          border:
-                              InputBorder.none,
-
-                          prefixIcon:
-                              Icon(
-                            Icons
-                                .person_outline_rounded,
-                            color:
-                                greyColor,
-                          ),
-
-                          hintText:
-                              'Enter your full name',
-
-                          hintStyle:
-                              TextStyle(
-                            color:
-                                greyColor,
-                          ),
-
-                          contentPadding:
-                              EdgeInsets
-                                  .symmetric(
-                            vertical:
-                                18,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 18,
-                    ),
-
-                    // ==================================================
-                    // BLOOD GROUP
-                    // ==================================================
-
-                    const Text(
-                      'Blood Group',
-                      style:
-                          TextStyle(
-                        color:
-                            darkColor,
-                        fontSize:
-                            15,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 8,
-                    ),
-
-                    GestureDetector(
-                      onTap:
-                          _selectBloodGroup,
-
-                      child:
-                          _fieldContainer(
-                        child:
-                            Padding(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal:
-                                16,
-                            vertical:
-                                17,
-                          ),
-
-                          child:
-                              Row(
-                            children: [
-                              const Icon(
-                                Icons
-                                    .bloodtype_outlined,
-                                color:
-                                    greyColor,
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    12,
-                              ),
-
-                              Expanded(
-                                child:
-                                    Text(
-                                  _selectedBloodGroup ??
-                                      'Select your blood group',
-
-                                  style:
-                                      TextStyle(
-                                    color:
-                                        _selectedBloodGroup ==
-                                                null
-                                            ? greyColor
-                                            : darkColor,
-                                    fontSize:
-                                        16,
-                                  ),
-                                ),
-                              ),
-
-                              const Icon(
-                                Icons
-                                    .keyboard_arrow_down_rounded,
-                                color:
-                                    greyColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 18,
-                    ),
-
-                    // ==================================================
-                    // GENDER
-                    // ==================================================
-
-                    const Text(
-                      'Gender',
-                      style:
-                          TextStyle(
-                        color:
-                            darkColor,
-                        fontSize:
-                            15,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 8,
-                    ),
-
-                    _fieldContainer(
-                      child:
-                          Padding(
-                        padding:
-                            const EdgeInsets
-                                .all(
-                          16,
-                        ),
-
-                        child:
-                            Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment
-                                  .spaceBetween,
-
-                          children: [
-                            _genderItem(
-                              'Male',
-                            ),
-
-                            _genderItem(
-                              'Female',
-                            ),
-
-                            _genderItem(
-                              'Other',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 25,
-                    ),
-
-                    // ==================================================
-                    // CREATE ACCOUNT
-                    // ==================================================
-
-                    SizedBox(
-                      width:
-                          double.infinity,
-
-                      height:
-                          60,
-
-                      child:
-                          ElevatedButton(
-                        onPressed:
-                            _isLoading
-                                ? null
-                                : _createAccount,
-
-                        style:
-                            ElevatedButton
-                                .styleFrom(
-                          backgroundColor:
-                              primaryColor,
-
-                          foregroundColor:
-                              Colors.white,
-
-                          disabledBackgroundColor:
-                              primaryColor
-                                  .withValues(
-                            alpha:
-                                0.6,
-                          ),
-
-                          elevation:
-                              0,
-
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                              16,
-                            ),
-                          ),
-                        ),
-
-                        child:
-                            _isLoading
-                                ? const SizedBox(
-                                    width:
-                                        25,
-                                    height:
-                                        25,
-                                    child:
-                                        CircularProgressIndicator(
-                                      color:
-                                          Colors.white,
-                                      strokeWidth:
-                                          3,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Create Account',
-                                    style:
-                                        TextStyle(
-                                      fontSize:
-                                          18,
-                                      fontWeight:
-                                          FontWeight
-                                              .w800,
-                                    ),
-                                  ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 22,
-                    ),
-
-                    // ==================================================
-                    // TRUST SECTION
-                    // ==================================================
-
-                    const Divider(
-                      color:
-                          borderColor,
-                    ),
-
-                    const SizedBox(
-                      height: 18,
-                    ),
-
+                child:
                     Row(
-                      children: [
-                        _trustItem(
-                          icon: Icons
+                  children: [
+                    _trustItem(
+                      icon:
+                          Icons
                               .verified_user_rounded,
-                          title:
-                              'Trusted',
-                          subtitle:
-                              'Verified workers',
-                        ),
-
-                        Container(
-                          width: 1,
-                          height: 50,
-                          color:
-                              borderColor,
-                        ),
-
-                        _trustItem(
-                          icon: Icons
+                      title:
+                          'Trusted',
+                      subtitle:
+                          'Verified workers',
+                    ),
+                    Container(
+                      width:
+                          1,
+                      height:
+                          70,
+                      color:
+                          AppColors.border,
+                    ),
+                    _trustItem(
+                      icon:
+                          Icons
                               .security_rounded,
-                          title:
-                              'Safe',
-                          subtitle:
-                              'Your safety first',
-                        ),
-
-                        Container(
-                          width: 1,
-                          height: 50,
-                          color:
-                              borderColor,
-                        ),
-
-                        _trustItem(
-                          icon:
-                              Icons.bolt_rounded,
-                          title:
-                              'Fast',
-                          subtitle:
-                              'Quick service',
-                        ),
-                      ],
+                      title:
+                          'Safe',
+                      subtitle:
+                          'Your safety first',
+                    ),
+                    Container(
+                      width:
+                          1,
+                      height:
+                          70,
+                      color:
+                          AppColors.border,
+                    ),
+                    _trustItem(
+                      icon:
+                          Icons
+                              .bolt_rounded,
+                      title:
+                          'Fast',
+                      subtitle:
+                          'Quick service',
                     ),
                   ],
                 ),
               ),
 
               const SizedBox(
-                height: 30,
+                height:
+                    10,
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ================================================================
-// TEMPORARY HOME SCREEN
-//
-// Later, actual Home screen create pannumbodhu
-// indha class-a actual HomeScreen-oda replace pannalaam.
-// ================================================================
-
-class WorkerHomeScreen
-    extends StatelessWidget {
-  const WorkerHomeScreen({
-    super.key,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return const Scaffold(
-      body:
-          Center(
-        child:
-            Text(
-          'Worker Home',
-          style:
-              TextStyle(
-            fontSize:
-                28,
-            fontWeight:
-                FontWeight.bold,
           ),
         ),
       ),
