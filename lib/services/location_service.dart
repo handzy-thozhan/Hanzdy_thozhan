@@ -192,14 +192,15 @@ class LocationService {
       // ----------------------------------------------------------
 
       final Position position =
-          await Geolocator.getCurrentPosition(
-        desiredAccuracy:
-            LocationAccuracy.best,
-      ).timeout(
-        const Duration(
-          seconds: 20,
-        ),
-      );
+    await Geolocator.getCurrentPosition(
+  locationSettings: const LocationSettings(
+    accuracy: LocationAccuracy.high,
+  ),
+).timeout(
+  const Duration(
+    seconds: 20,
+  ),
+);
 
       // ----------------------------------------------------------
       // GPS DATA

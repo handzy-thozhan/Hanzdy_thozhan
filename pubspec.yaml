@@ -1,50 +1,110 @@
-name: handzythozhan
-description: "A new Flutter project."
+name: hanzdy_thozhan
+
+description: "HANDZY - Trusted services at your doorstep."
+
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: '>=3.8.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
+  # ------------------------------------------------------------
+  # UI / ICONS
+  # ------------------------------------------------------------
+
   cupertino_icons: ^1.0.8
-  geolocator: ^12.0.0
-  geocoding: ^5.0.0
-  permission_handler: ^11.3.1
-  connectivity_plus: ^6.0.5
-  firebase_core: ^4.13.0
-  video_player: ^2.9.5
-  firebase_auth: ^6.5.7
-  http: ^1.6.0
-  android_intent_plus: 5.3.1
-  cloud_firestore: ^6.8.0
-  image_picker: ^1.2.3
-  shared_preferences: ^2.5.3
+
+  # ------------------------------------------------------------
+  # FIREBASE
+  # ------------------------------------------------------------
+
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.1
+  cloud_firestore: ^6.0.0
   firebase_storage: ^13.0.0
-  lottie: ^3.5.1
+  firebase_messaging: ^16.0.0
+
+  # ------------------------------------------------------------
+  # IMAGE / CAMERA
+  # ------------------------------------------------------------
+
+  image_picker: ^1.2.3
+  permission_handler: ^13.0.1
+
+  # Camera package
+  camera: ^0.12.0+1
+
+  # Android Camera2 implementation
+  camera_android: ^0.10.11
+
+  # ------------------------------------------------------------
+  # LOCATION
+  # ------------------------------------------------------------
+
+  geolocator: ^14.0.2
+  geocoding: ^5.0.0
+
+  # ------------------------------------------------------------
+  # LOCAL STORAGE
+  # ------------------------------------------------------------
+
+  shared_preferences: ^2.5.3
   path_provider: ^2.1.5
+
+  # ------------------------------------------------------------
+  # NETWORK
+  # ------------------------------------------------------------
+
+  http: ^1.5.0
+  connectivity_plus: ^7.3.1
+
+  # ------------------------------------------------------------
+  # ANIMATIONS
+  # ------------------------------------------------------------
+
+  lottie: ^3.3.1
+
+  # ------------------------------------------------------------
+  # URL / LINKS
+  # ------------------------------------------------------------
+
+  url_launcher: ^6.3.2
+
+  # ------------------------------------------------------------
+  # DEVICE / APP INFO
+  # ------------------------------------------------------------
+
+  device_info_plus: ^11.5.0
+
+  # ------------------------------------------------------------
+  # LOCAL NOTIFICATIONS
+  # ------------------------------------------------------------
+
+  flutter_local_notifications: ^19.4.0
+  android_intent_plus: ^6.1.0
+
+  # ------------------------------------------------------------
+  # VIDEO
+  # ------------------------------------------------------------
+
+  video_player: ^2.14.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/image/handzy_thozhan_logo.png
+    - assets/
     - assets/animations/handzy_fetching_location.json
     - assets/animations/handzy_location_found.json
-    - assets/image/handzy_worker.png
-
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "assets/image/handzy_thozhan_logo.png"
+    - assets/image/handzy_thozhan_logo.png
