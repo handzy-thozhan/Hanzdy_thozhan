@@ -8,13 +8,15 @@ import 'features/splash/splash_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  debugPrint(
-    '🔥 Firebase Connected',
-  );
+    debugPrint('🔥 Firebase Connected');
+  } catch (e) {
+    debugPrint('❌ Firebase Initialization Error: $e');
+  }
 
   runApp(
     const HandzyThozhanApp(),
@@ -27,20 +29,12 @@ class HandzyThozhanApp extends StatelessWidget {
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
-      theme:
-          AppTheme.lightTheme,
-
-      title:
-          'Handzy Thozhan',
-
-      home:
-          const SplashScreen(),
+      title: 'Handzy Thozhan',
+      theme: AppTheme.lightTheme,
+      home: const SplashScreen(),
     );
   }
 }

@@ -1,305 +1,246 @@
-import 'dart:io';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
 
-class WorkerHomeScreen extends StatelessWidget {
+import 'widgets/home_header.dart';
+import 'widgets/online_status_section.dart';
+import 'widgets/home_stats_section.dart';
+import 'widgets/home_map_section.dart';
+import 'widgets/home_bottom_navigation.dart';
+
+class WorkerHomeScreen extends StatefulWidget {
   const WorkerHomeScreen({
     super.key,
   });
 
-  Future<
-      DocumentSnapshot<
-          Map<String, dynamic>>> _getWorkerData() async {
-    final User? user =
-        FirebaseAuth.instance.currentUser;
+  @override
+  State<WorkerHomeScreen> createState() {
+    return _WorkerHomeScreenState();
+  }
+}
 
-    if (user == null) {
-      throw Exception(
-        'User not found',
-      );
-    }
+class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
+  bool isOnline = false;
 
-    return FirebaseFirestore.instance
-        .collection('workers')
-        .doc(user.uid)
-        .get();
+  bool showStats = false;
+
+  List<String> selectedWorkerFields = [];
+
+  int currentIndex = 0;
+
+  void _updateOnlineStatus(bool value) {
+    setState(() {
+      isOnline = value;
+    });
   }
 
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Scaffold(
-      backgroundColor:
-          AppColors.background,
+  void _updateWorkerFields(List<String> fields) {
+    setState(() {
+      selectedWorkerFields = fields;
+    });
+  }
 
-      appBar:
-          AppBar(
-        backgroundColor:
-            AppColors.background,
+  void _toggleStats() {
+    setState(() {
+      showStats = !showStats;
+    });
+  }
 
-        foregroundColor:
-            AppColors.textPrimary,
-
-        elevation:
-            0,
-
-        title:
-            const Text(
-          'HANDZY THOZHAN',
-
-          style:
-              TextStyle(
-            color:
-                AppColors.textPrimary,
-
-            fontSize:
-                20,
-
-            fontWeight:
-                FontWeight.w700,
-          ),
+  void _openMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(26),
         ),
       ),
-
-      body:
-          FutureBuilder<
-              DocumentSnapshot<
-                  Map<String, dynamic>>>(
-        future:
-            _getWorkerData(),
-
-        builder:
-            (
-          BuildContext context,
-          AsyncSnapshot<
-                  DocumentSnapshot<
-                      Map<String, dynamic>>>
-              snapshot,
-        ) {
-          // ====================================================
-          // LOADING
-          // ====================================================
-
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child:
-                  CircularProgressIndicator(),
-            );
-          }
-
-          // ====================================================
-          // ERROR
-          // ====================================================
-
-          if (snapshot.hasError) {
-            return const Center(
-              child:
-                  Text(
-                'Unable to load your profile',
-                style:
-                    TextStyle(
-                  color:
-                      AppColors.textPrimary,
-                  fontSize:
-                      18,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-            );
-          }
-
-          // ====================================================
-          // NO DATA
-          // ====================================================
-
-          if (!snapshot.hasData ||
-              !snapshot.data!.exists) {
-            return const Center(
-              child:
-                  Text(
-                'Worker profile not found',
-                style:
-                    TextStyle(
-                  color:
-                      AppColors.textPrimary,
-                  fontSize:
-                      18,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-            );
-          }
-
-          // ====================================================
-          // WORKER DATA
-          // ====================================================
-
-          final Map<String, dynamic> data =
-              snapshot.data!.data() ??
-                  <String, dynamic>{};
-
-          final String name =
-              data['fullName']
-                          ?.toString()
-                          .trim()
-                          .isNotEmpty ==
-                      true
-                  ? data['fullName']
-                      .toString()
-                  : 'Worker';
-
-          final String? photoPath =
-              data['profileImage']
-                  ?.toString();
-
-          // ====================================================
-          // HOME
-          // ====================================================
-
-          return Center(
-            child:
-                Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // ==================================================
-                // PROFILE PHOTO
-                // ==================================================
-
                 Container(
-                  width:
-                      140,
-
-                  height:
-                      140,
-
-                  decoration:
-                      BoxDecoration(
-                    shape:
-                        BoxShape.circle,
-
-                    border:
-                        Border.all(
-                      color:
-                          AppColors.primary,
-
-                      width:
-                          3,
-                    ),
-                  ),
-
-                  child:
-                      ClipOval(
-                    child:
-                        photoPath != null &&
-                                photoPath
-                                    .isNotEmpty
-                            ? Image.file(
-                                File(
-                                  photoPath,
-                                ),
-
-                                width:
-                                    140,
-
-                                height:
-                                    140,
-
-                                fit:
-                                    BoxFit.cover,
-
-                                errorBuilder:
-                                    (
-                                  context,
-                                  error,
-                                  stackTrace,
-                                ) {
-                                  return const Icon(
-                                    Icons
-                                        .person,
-                                    size:
-                                        70,
-                                    color:
-                                        AppColors
-                                            .textSecondary,
-                                  );
-                                },
-                              )
-                            : const Icon(
-                                Icons.person,
-                                size:
-                                    70,
-                                color:
-                                    AppColors
-                                        .textSecondary,
-                              ),
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
 
-                const SizedBox(
-                  height:
-                      20,
-                ),
+                const SizedBox(height: 22),
 
-                // ==================================================
-                // NAME
-                // ==================================================
-
-                Text(
-                  'Welcome, $name',
-
-                  textAlign:
-                      TextAlign.center,
-
-                  style:
-                      const TextStyle(
-                    color:
-                        AppColors.textPrimary,
-
-                    fontSize:
-                        26,
-
-                    fontWeight:
-                        FontWeight.w700,
+                const CircleAvatar(
+                  radius: 32,
+                  backgroundColor: AppColors.lightTeal,
+                  child: Icon(
+                    Icons.person_rounded,
+                    color: AppColors.primary,
+                    size: 36,
                   ),
                 ),
 
-                const SizedBox(
-                  height:
-                      8,
-                ),
+                const SizedBox(height: 10),
 
                 const Text(
-                  'Welcome to HANDZY THOZHAN',
-
-                  textAlign:
-                      TextAlign.center,
-
-                  style:
-                      TextStyle(
-                    color:
-                        AppColors.textSecondary,
-
-                    fontSize:
-                        16,
-
-                    fontWeight:
-                        FontWeight.w500,
+                  'Handzy Thozhan',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                _menuItem(
+                  icon: Icons.person_outline_rounded,
+                  title: 'Profile',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+
+                _menuItem(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'My Jobs',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+
+                _menuItem(
+                  icon: Icons.currency_rupee_rounded,
+                  title: 'Earnings',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+
+                _menuItem(
+                  icon: Icons.help_outline_rounded,
+                  title: 'Help & Support',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+
+                _menuItem(
+                  icon: Icons.settings_outlined,
+                  title: 'Settings',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
                 ),
               ],
             ),
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _menuItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(
+        icon,
+        color: AppColors.primary,
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: AppColors.textSecondary,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  14,
+                  16,
+                  20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    HomeHeader(
+                      onMenuTap: _openMenu,
+                      onNotificationTap: () {},
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    OnlineStatusSection(
+                      isOnline: isOnline,
+                      selectedFields: selectedWorkerFields,
+                      onStatusChanged: _updateOnlineStatus,
+                      onFieldsChanged: _updateWorkerFields,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    if (isOnline &&
+                        selectedWorkerFields.isNotEmpty)
+                      Text(
+                        selectedWorkerFields.join(' • '),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+
+                    const SizedBox(height: 12),
+
+                    HomeStatsSection(
+                      isExpanded: showStats,
+                      onToggle: _toggleStats,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const HomeMapSection(),
+                  ],
+                ),
+              ),
+            ),
+
+            HomeBottomNavigation(
+              currentIndex: currentIndex,
+              onItemSelected: (index) {
+                setState(() {
+                  currentIndex = index;
+                });
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

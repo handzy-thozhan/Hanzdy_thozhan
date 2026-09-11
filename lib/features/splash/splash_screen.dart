@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../services/location_service.dart';
@@ -84,19 +81,18 @@ class _SplashScreenState
   late Animation<Offset>
       _locationContentSlide;
 
-  // ==========================================================
-  // LOCATION FOUND LOTTIE
-  // ==========================================================
+  late AnimationController _searchingController;
+  late Animation<double> _searchingScale;
+  late Animation<double> _searchingRipple;
 
-  late AnimationController
-      _locationFoundController;
+  // ==========================================================
+  // LOCATION STATE
+  // ==========================================================
 
   bool _showLocationFound = false;
 
-  bool _locationFoundStarted = false;
-
   // ==========================================================
-  // READY CONTENT
+  // READY STATE
   // ==========================================================
 
   bool _showLocationReady = false;
@@ -106,12 +102,6 @@ class _SplashScreenState
   bool _showReady = false;
 
   bool _readyFlowStarted = false;
-
-  // ==========================================================
-  // GPS
-  // ==========================================================
-
-  bool _gpsSuccess = false;
 
   // ==========================================================
   // REGISTERED USER
@@ -179,7 +169,7 @@ class _SplashScreenState
       vsync: this,
       duration:
           const Duration(
-        milliseconds: 650,
+        milliseconds: 500,
       ),
     );
 
@@ -201,7 +191,7 @@ class _SplashScreenState
       begin:
           const Offset(
         0,
-        0.18,
+        0.08,
       ),
       end:
           Offset.zero,
@@ -214,13 +204,17 @@ class _SplashScreenState
       ),
     );
 
-    // ========================================================
-    // LOCATION FOUND LOTTIE CONTROLLER
-    // ========================================================
-
-    _locationFoundController =
-        AnimationController(
+    _searchingController = AnimationController(
       vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    _searchingScale = Tween<double>(begin: 0.92, end: 1.08).animate(
+      CurvedAnimation(parent: _searchingController, curve: Curves.easeInOut),
+    );
+
+    _searchingRipple = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _searchingController, curve: Curves.easeOut),
     );
 
     // ========================================================
@@ -347,13 +341,7 @@ class _SplashScreenState
     // RESET
     // ========================================================
 
-    _gpsSuccess = false;
-
-    _locationFoundStarted = false;
-
     _readyFlowStarted = false;
-
-    _locationFoundController.reset();
 
     setState(() {
       loading = true;
@@ -383,7 +371,7 @@ class _SplashScreenState
     );
 
     // ========================================================
-    // EXISTING SPLASH CONTROLLER
+    // SPLASH CONTROLLER
     // ========================================================
 
     final SplashFlowResult result =
@@ -468,8 +456,6 @@ class _SplashScreenState
       status =
           'Location found';
 
-      _gpsSuccess = true;
-
       _registeredUser =
           result.registeredUser;
 
@@ -477,17 +463,7 @@ class _SplashScreenState
     });
 
     // ========================================================
-    // LOCATION FOUND ANIMATION
-    // ========================================================
-
-    await _playLocationFoundAnimation();
-
-    if (!mounted) {
-      return;
-    }
-
-    // ========================================================
-    // READY CONTENT
+    // SHOW READY CONTENT
     // ========================================================
 
     await _showReadyContent();
@@ -497,28 +473,10 @@ class _SplashScreenState
     }
 
     // ========================================================
-    // CONTINUE
+    // AUTOMATIC NEXT PAGE
     // ========================================================
 
     await _continueAfterReady();
-  }
-
-  // ============================================================
-  // LOCATION FOUND ANIMATION
-  // ============================================================
-
-  Future<void> _playLocationFoundAnimation() async {
-    if (!mounted) {
-      return;
-    }
-
-    debugPrint(
-      '📍 Location Found animation starting...',
-    );
-
-    debugPrint(
-      '📍 Location Found animation flow released',
-    );
   }
 
   // ============================================================
@@ -554,7 +512,7 @@ class _SplashScreenState
 
     await Future.delayed(
       const Duration(
-        milliseconds: 400,
+        milliseconds: 500,
       ),
     );
 
@@ -563,7 +521,7 @@ class _SplashScreenState
     }
 
     // ========================================================
-    // WORK AREA
+    // AREA
     // ========================================================
 
     setState(() {
@@ -576,7 +534,7 @@ class _SplashScreenState
 
     await Future.delayed(
       const Duration(
-        milliseconds: 650,
+        milliseconds: 700,
       ),
     );
 
@@ -585,7 +543,7 @@ class _SplashScreenState
     }
 
     // ========================================================
-    // READY TO WORK
+    // READY
     // ========================================================
 
     setState(() {
@@ -601,7 +559,7 @@ class _SplashScreenState
   }
 
   // ============================================================
-  // CONTINUE AFTER READY
+  // AUTOMATIC NEXT PAGE
   // ============================================================
 
   Future<void>
@@ -621,7 +579,7 @@ class _SplashScreenState
     }
 
     // ========================================================
-    // REGISTERED USER → REAL HOME
+    // REGISTERED USER → HOME
     // ========================================================
 
     if (_registeredUser) {
@@ -656,6 +614,10 @@ class _SplashScreenState
       return;
     }
 
+    // ========================================================
+    // NOTIFICATION COMPLETED
+    // ========================================================
+
     if (notificationCompleted) {
       debugPrint(
         '🔔 Notification already completed',
@@ -676,6 +638,10 @@ class _SplashScreenState
 
       return;
     }
+
+    // ========================================================
+    // NOTIFICATION NOT COMPLETED
+    // ========================================================
 
     debugPrint(
       '🔔 Opening Notification Permission',
@@ -795,7 +761,7 @@ class _SplashScreenState
     _locationContentController
         .dispose();
 
-    _locationFoundController.dispose();
+    _searchingController.dispose();
 
     super.dispose();
   }
@@ -818,7 +784,7 @@ class _SplashScreenState
             Stack(
           children: [
             // ==================================================
-            // BRAND INTRO
+            // OLD APP LOGO ANIMATION
             // ==================================================
 
             if (_showBrandIntro)
@@ -848,30 +814,12 @@ class _SplashScreenState
                       ),
 
                       decoration:
-                          BoxDecoration(
+                          const BoxDecoration(
                         shape:
                             BoxShape.circle,
 
                         color:
                             Colors.white,
-
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                AppColors
-                                    .secondary
-                                    .withValues(
-                              alpha:
-                                  0.24,
-                            ),
-
-                            blurRadius:
-                                35,
-
-                            spreadRadius:
-                                5,
-                          ),
-                        ],
                       ),
 
                       child:
@@ -888,7 +836,7 @@ class _SplashScreenState
               ),
 
             // ==================================================
-            // MAIN CONTENT
+            // LOCATION CONTENT
             // ==================================================
 
             if (!_showBrandIntro)
@@ -905,9 +853,6 @@ class _SplashScreenState
                       Center(
                     child:
                         SingleChildScrollView(
-                      physics:
-                          const BouncingScrollPhysics(),
-
                       child:
                           Padding(
                         padding:
@@ -928,24 +873,24 @@ class _SplashScreenState
 
                           children: [
                             // ==================================
-                            // FETCHING LOCATION
+                            // SEARCHING
                             // ==================================
 
                             if (loading)
-                              _buildGpsFetchingSection(),
+                              _buildSearchingView(),
 
                             // ==================================
-                            // LOCATION FOUND
+                            // FOUND
                             // ==================================
 
                             if (!loading &&
                                 !internetRequired &&
                                 !locationRequired &&
                                 _showLocationFound)
-                              _buildLocationFoundSection(),
+                              _buildLocationFoundView(),
 
                             // ==================================
-                            // INTERNET REQUIRED
+                            // INTERNET
                             // ==================================
 
                             if (!loading &&
@@ -959,45 +904,6 @@ class _SplashScreenState
                             if (!loading &&
                                 locationRequired)
                               _buildLocationRequiredSection(),
-
-                            // ==================================
-                            // FOOTER
-                            // ==================================
-
-                            if (!_showLocationFound &&
-                                !_gpsSuccess)
-                              const Column(
-                                children: [
-                                  SizedBox(
-                                    height:
-                                        70,
-                                  ),
-
-                                  Text(
-                                    'HANDZY • WORK MADE EASY',
-
-                                    textAlign:
-                                        TextAlign.center,
-
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          AppColors
-                                              .primary,
-
-                                      fontSize:
-                                          12,
-
-                                      fontWeight:
-                                          FontWeight
-                                              .w700,
-
-                                      letterSpacing:
-                                          1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
                           ],
                         ),
                       ),
@@ -1012,87 +918,94 @@ class _SplashScreenState
   }
 
   // ============================================================
-  // FETCHING LOCATION
+  // SEARCHING
   // ============================================================
 
-  Widget _buildGpsFetchingSection() {
-    return Column(
-      mainAxisSize:
-          MainAxisSize.min,
+  Widget _buildSearchingView() {
+    return AnimatedBuilder(
+      animation: _searchingController,
+      builder: (context, child) {
+        final ripple = _searchingRipple.value;
 
-      children: [
-        SizedBox(
-          width:
-              300,
-
-          height:
-              300,
-
-          child:
-              Lottie.asset(
-            'assets/animations/'
-            'handzy_fetching_location.json',
-
-            repeat:
-                true,
-
-            fit:
-                BoxFit.contain,
-          ),
-        ),
-
-        const SizedBox(
-          height:
-              10,
-        ),
-
-        const Text(
-          'Finding your work area',
-
-          textAlign:
-              TextAlign.center,
-
-          style:
-              TextStyle(
-            color:
-                AppColors.primary,
-
-            fontSize:
-                19,
-
-            fontWeight:
-                FontWeight.w800,
-          ),
-        ),
-
-        const SizedBox(
-          height:
-              8,
-        ),
-
-        Text(
-          'Fetching your current location...',
-
-          textAlign:
-              TextAlign.center,
-
-          style:
-              TextStyle(
-            color:
-                AppColors.textSecondary
-                    .withValues(
-              alpha:
-                  0.80,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 130,
+              height: 130,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 130 * ripple,
+                    height: 130 * ripple,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(
+                        alpha: (1 - ripple) * 0.18,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 108 * ripple,
+                    height: 108 * ripple,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(
+                        alpha: (1 - ripple) * 0.22,
+                      ),
+                    ),
+                  ),
+                  Transform.scale(
+                    scale: _searchingScale.value,
+                    child: Container(
+                      width: 78,
+                      height: 78,
+                      decoration: const BoxDecoration(
+                        color: AppColors.lightTeal,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.location_on_outlined,
+                        color: AppColors.primary,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-
-            fontSize:
-                13,
-
-            fontWeight:
-                FontWeight.w500,
-          ),
-        ),
-      ],
+            const SizedBox(height: 20),
+            const Text(
+              'Finding your location',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please wait a moment...',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1100,52 +1013,69 @@ class _SplashScreenState
   // LOCATION FOUND
   // ============================================================
 
-  Widget _buildLocationFoundSection() {
+  Widget _buildLocationFoundView() {
     return Column(
       mainAxisSize:
           MainAxisSize.min,
 
       children: [
-        SizedBox(
+        Container(
           width:
-              300,
+              78,
 
           height:
-              300,
+              78,
+
+          decoration:
+              const BoxDecoration(
+            color:
+                AppColors.lightTeal,
+
+            shape:
+                BoxShape.circle,
+          ),
 
           child:
-              Lottie.asset(
-            'assets/animations/'
-            'handzy_location_found.json',
+              const Icon(
+            Icons.location_on,
 
-            controller:
-                _locationFoundController,
+            color:
+                AppColors.primary,
 
-            repeat:
-                false,
-
-            fit:
-                BoxFit.contain,
-
-            onLoaded: (
-              LottieComposition composition,
-            ) {
-              _locationFoundController
-                  .duration =
-                  composition.duration;
-
-              if (!_locationFoundStarted) {
-                _locationFoundStarted = true;
-
-                debugPrint(
-                  '📍 Location Found Lottie started',
-                );
-
-                _locationFoundController
-                    .forward();
-              }
-            },
+            size:
+                40,
           ),
+        ),
+
+        const SizedBox(
+          height:
+              28,
+        ),
+
+        Text(
+          _showLocationReady
+              ? 'Location ready'
+              : 'Location found',
+
+          textAlign:
+              TextAlign.center,
+
+          style:
+              const TextStyle(
+            color:
+                AppColors.textPrimary,
+
+            fontSize:
+                22,
+
+            fontWeight:
+                FontWeight.w700,
+          ),
+        ),
+
+        const SizedBox(
+          height:
+              10,
         ),
 
         AnimatedOpacity(
@@ -1156,108 +1086,42 @@ class _SplashScreenState
           ),
 
           opacity:
-              _showLocationReady
+              _showArea
                   ? 1.0
                   : 0.0,
 
           child:
-              const Text(
-            'Location ready',
+              Text(
+            locationName ??
+                'Current location',
 
             textAlign:
                 TextAlign.center,
 
             style:
-                TextStyle(
+                const TextStyle(
               color:
                   AppColors.primary,
 
               fontSize:
-                  20,
+                  17,
 
               fontWeight:
-                  FontWeight.w800,
+                  FontWeight.w600,
             ),
           ),
         ),
 
         const SizedBox(
           height:
-              10,
+              22,
         ),
 
         AnimatedOpacity(
           duration:
               const Duration(
             milliseconds:
-                500,
-          ),
-
-          opacity:
-              _showArea
-                  ? 1.0
-                  : 0.0,
-
-          child:
-              Column(
-            children: [
-              const Text(
-                'Your work area',
-
-                textAlign:
-                    TextAlign.center,
-
-                style:
-                    TextStyle(
-                  color:
-                      AppColors.textSecondary,
-
-                  fontSize:
-                      14,
-
-                  fontWeight:
-                      FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(
-                height:
-                    5,
-              ),
-
-              Text(
-                locationName ??
-                    'Current location',
-
-                textAlign:
-                    TextAlign.center,
-
-                style:
-                    const TextStyle(
-                  color:
-                      AppColors.primary,
-
-                  fontSize:
-                      28,
-
-                  fontWeight:
-                      FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(
-          height:
-              13,
-        ),
-
-        AnimatedOpacity(
-          duration:
-              const Duration(
-            milliseconds:
-                500,
+                350,
           ),
 
           opacity:
@@ -1266,22 +1130,20 @@ class _SplashScreenState
                   : 0.0,
 
           child:
-              const Text(
-            'Ready to work 🚀',
+              const SizedBox(
+            width:
+                20,
 
-            textAlign:
-                TextAlign.center,
+            height:
+                20,
 
-            style:
-                TextStyle(
+            child:
+                CircularProgressIndicator(
+              strokeWidth:
+                  2,
+
               color:
-                  AppColors.textPrimary,
-
-              fontSize:
-                  16,
-
-              fontWeight:
-                  FontWeight.w600,
+                  AppColors.primary,
             ),
           ),
         ),
@@ -1296,6 +1158,9 @@ class _SplashScreenState
   Widget
       _buildInternetRequiredSection() {
     return Column(
+      mainAxisSize:
+          MainAxisSize.min,
+
       children: [
         Container(
           width:
@@ -1305,29 +1170,12 @@ class _SplashScreenState
               78,
 
           decoration:
-              BoxDecoration(
+              const BoxDecoration(
             shape:
                 BoxShape.circle,
 
             color:
                 AppColors.lightTeal,
-
-            boxShadow: [
-              BoxShadow(
-                color:
-                    AppColors.secondary
-                        .withValues(
-                  alpha:
-                      0.18,
-                ),
-
-                blurRadius:
-                    25,
-
-                spreadRadius:
-                    4,
-              ),
-            ],
           ),
 
           child:
@@ -1416,9 +1264,6 @@ class _SplashScreenState
               children: [
                 Icon(
                   Icons.wifi_rounded,
-
-                  color:
-                      AppColors.textOnPrimary,
                 ),
 
                 SizedBox(
@@ -1453,6 +1298,9 @@ class _SplashScreenState
   Widget
       _buildLocationRequiredSection() {
     return Column(
+      mainAxisSize:
+          MainAxisSize.min,
+
       children: [
         Container(
           width:
@@ -1462,7 +1310,7 @@ class _SplashScreenState
               68,
 
           decoration:
-              BoxDecoration(
+              const BoxDecoration(
             shape:
                 BoxShape.circle,
 

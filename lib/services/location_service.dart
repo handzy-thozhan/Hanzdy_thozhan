@@ -5,7 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 class LocationService {
   // ============================================================
-  // CHECK GPS / LOCATION SERVICE
+  // CHECK PHONE LOCATION SERVICE
   // ============================================================
 
   static Future<bool> isLocationServiceEnabled() async {
@@ -31,10 +31,6 @@ class LocationService {
       '📍 Current location permission: $status',
     );
 
-    // ------------------------------------------------------------
-    // Already granted
-    // ------------------------------------------------------------
-
     if (status.isGranted) {
       debugPrint(
         '✅ Location permission already granted',
@@ -43,10 +39,6 @@ class LocationService {
       return true;
     }
 
-    // ------------------------------------------------------------
-    // Permanently denied
-    // ------------------------------------------------------------
-
     if (status.isPermanentlyDenied) {
       debugPrint(
         '❌ Location permission permanently denied',
@@ -54,10 +46,6 @@ class LocationService {
 
       return false;
     }
-
-    // ------------------------------------------------------------
-    // Request permission
-    // ------------------------------------------------------------
 
     debugPrint(
       '📍 Requesting location permission...',
@@ -70,10 +58,6 @@ class LocationService {
       '📍 Permission after request: $status',
     );
 
-    // ------------------------------------------------------------
-    // Granted
-    // ------------------------------------------------------------
-
     if (status.isGranted) {
       debugPrint(
         '✅ Location permission granted',
@@ -82,10 +66,6 @@ class LocationService {
       return true;
     }
 
-    // ------------------------------------------------------------
-    // Permanently denied
-    // ------------------------------------------------------------
-
     if (status.isPermanentlyDenied) {
       debugPrint(
         '❌ Location permission became permanently denied',
@@ -93,10 +73,6 @@ class LocationService {
 
       return false;
     }
-
-    // ------------------------------------------------------------
-    // Still denied
-    // ------------------------------------------------------------
 
     debugPrint(
       '❌ Location permission denied',
@@ -146,16 +122,13 @@ class LocationService {
 
   // ============================================================
   // GET CURRENT GPS LOCATION
-  //
-  // IMPORTANT:
-  // LocationAccuracy.best = highest accuracy request
   // ============================================================
 
   static Future<Position?> getCurrentLocation() async {
     try {
-      // ----------------------------------------------------------
-      // Check GPS service
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // CHECK GPS SERVICE
+      // --------------------------------------------------------
 
       final bool serviceEnabled =
           await Geolocator.isLocationServiceEnabled();
@@ -168,9 +141,9 @@ class LocationService {
         return null;
       }
 
-      // ----------------------------------------------------------
-      // Check permission
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // CHECK PERMISSION
+      // --------------------------------------------------------
 
       final PermissionStatus permission =
           await Permission.locationWhenInUse.status;
@@ -184,27 +157,25 @@ class LocationService {
       }
 
       debugPrint(
-        '📍 Getting HIGH ACCURACY GPS position...',
+        '📍 Getting high accuracy GPS position...',
       );
 
-      // ----------------------------------------------------------
-      // GET BEST GPS POSITION
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // GET GPS POSITION
+      // --------------------------------------------------------
 
       final Position position =
-    await Geolocator.getCurrentPosition(
-  locationSettings: const LocationSettings(
-    accuracy: LocationAccuracy.high,
-  ),
-).timeout(
-  const Duration(
-    seconds: 20,
-  ),
-);
+          await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(
+        const Duration(seconds: 20),
+      );
 
-      // ----------------------------------------------------------
-      // GPS DATA
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // PRINT GPS DATA
+      // --------------------------------------------------------
 
       debugPrint(
         '📍 Latitude: ${position.latitude}',
@@ -215,13 +186,8 @@ class LocationService {
       );
 
       debugPrint(
-        '🎯 GPS Accuracy: '
-        '${position.accuracy} meters',
+        '🎯 GPS Accuracy: ${position.accuracy} meters',
       );
-
-      // ----------------------------------------------------------
-      // OPTIONAL EXTRA GPS DATA
-      // ----------------------------------------------------------
 
       debugPrint(
         '🛰️ Altitude: ${position.altitude}',
@@ -243,12 +209,6 @@ class LocationService {
 
   // ============================================================
   // GET LOCATION NAME
-  //
-  // Priority:
-  //
-  // 1. SubLocality → Sholinganallur / Velachery etc.
-  // 2. Locality     → Chennai etc.
-  // 3. Administrative Area → Tamil Nadu etc.
   // ============================================================
 
   static Future<String?> getLocationName(
@@ -259,17 +219,18 @@ class LocationService {
         '🏠 Reverse geocoding GPS coordinates...',
       );
 
-      final Geocoding geocoding = Geocoding();
+      final Geocoding geocodingService =
+          Geocoding();
 
-final List<Placemark> placemarks =
-    await geocoding.placemarkFromCoordinates(
-  position.latitude,
-  position.longitude,
-).timeout(
-  const Duration(
-    seconds: 10,
-  ),
-);
+      final List<Placemark> placemarks =
+          await geocodingService
+              .placemarkFromCoordinates(
+                position.latitude,
+                position.longitude,
+              )
+              .timeout(
+                const Duration(seconds: 10),
+              );
 
       if (placemarks.isEmpty) {
         debugPrint(
@@ -282,9 +243,9 @@ final List<Placemark> placemarks =
       final Placemark place =
           placemarks.first;
 
-      // ----------------------------------------------------------
-      // PRINT ALL ADDRESS INFORMATION
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // PRINT COMPLETE ADDRESS DATA
+      // --------------------------------------------------------
 
       debugPrint(
         '🏠 Name: ${place.name}',
@@ -303,6 +264,11 @@ final List<Placemark> placemarks =
       );
 
       debugPrint(
+        '🏙️ SubAdministrativeArea: '
+        '${place.subAdministrativeArea}',
+      );
+
+      debugPrint(
         '🏙️ AdministrativeArea: '
         '${place.administrativeArea}',
       );
@@ -311,53 +277,105 @@ final List<Placemark> placemarks =
         '📮 PostalCode: ${place.postalCode}',
       );
 
-      // ----------------------------------------------------------
-      // 1. SUB LOCALITY
+      debugPrint(
+        '🌍 Country: ${place.country}',
+      );
+
+      // --------------------------------------------------------
+      // PRIORITY 1 - SUB LOCALITY
       //
       // Example:
+      // Karapakkam
       // Sholinganallur
       // Velachery
-      // Tambaram
-      // ----------------------------------------------------------
+      // Thoraipakkam
+      // --------------------------------------------------------
 
-      if (place.subLocality != null &&
-          place.subLocality!
-              .trim()
-              .isNotEmpty) {
-        return place.subLocality!
-            .trim();
+      final String? subLocality =
+          _cleanLocationValue(
+        place.subLocality,
+      );
+
+      if (subLocality != null) {
+        debugPrint(
+          '✅ Selected SubLocality: $subLocality',
+        );
+
+        return subLocality;
       }
 
-      // ----------------------------------------------------------
-      // 2. LOCALITY
+      // --------------------------------------------------------
+      // PRIORITY 2 - LOCALITY
       //
       // Example:
       // Chennai
-      // ----------------------------------------------------------
+      // Tambaram
+      // --------------------------------------------------------
 
-      if (place.locality != null &&
-          place.locality!
-              .trim()
-              .isNotEmpty) {
-        return place.locality!
-            .trim();
+      final String? locality =
+          _cleanLocationValue(
+        place.locality,
+      );
+
+      if (locality != null) {
+        debugPrint(
+          '📍 Selected Locality: $locality',
+        );
+
+        return locality;
       }
 
-      // ----------------------------------------------------------
-      // 3. ADMINISTRATIVE AREA
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // PRIORITY 3 - SUB ADMINISTRATIVE AREA
+      //
+      // Example:
+      // Chennai
+      // Chengalpattu
+      // Kanchipuram
+      // --------------------------------------------------------
 
-      if (place.administrativeArea != null &&
-          place.administrativeArea!
-              .trim()
-              .isNotEmpty) {
-        return place.administrativeArea!
-            .trim();
+      final String? subAdministrativeArea =
+          _cleanLocationValue(
+        place.subAdministrativeArea,
+      );
+
+      if (subAdministrativeArea != null) {
+        debugPrint(
+          '📍 Selected SubAdministrativeArea: '
+          '$subAdministrativeArea',
+        );
+
+        return subAdministrativeArea;
       }
 
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+      // PRIORITY 4 - ADMINISTRATIVE AREA
+      //
+      // Example:
+      // Tamil Nadu
+      // --------------------------------------------------------
+
+      final String? administrativeArea =
+          _cleanLocationValue(
+        place.administrativeArea,
+      );
+
+      if (administrativeArea != null) {
+        debugPrint(
+          '📍 Selected AdministrativeArea: '
+          '$administrativeArea',
+        );
+
+        return administrativeArea;
+      }
+
+      // --------------------------------------------------------
       // NOTHING FOUND
-      // ----------------------------------------------------------
+      // --------------------------------------------------------
+
+      debugPrint(
+        '❌ No valid location name found',
+      );
 
       return null;
     } catch (e) {
@@ -367,6 +385,56 @@ final List<Placemark> placemarks =
 
       return null;
     }
+  }
+
+  // ============================================================
+  // CLEAN LOCATION VALUE
+  // ============================================================
+
+  static String? _cleanLocationValue(
+    String? value,
+  ) {
+    if (value == null) {
+      return null;
+    }
+
+    final String cleanedValue =
+        value.trim();
+
+    if (cleanedValue.isEmpty) {
+      return null;
+    }
+
+    if (_isCommonCityOrState(
+      cleanedValue,
+    )) {
+      return null;
+    }
+
+    return cleanedValue;
+  }
+
+  // ============================================================
+  // IGNORE COMMON CITY / STATE / COUNTRY NAMES
+  // ============================================================
+
+  static bool _isCommonCityOrState(
+    String value,
+  ) {
+    final String text =
+        value.trim().toLowerCase();
+
+    const List<String> blockedNames = [
+      'chennai',
+      'tamil nadu',
+      'tamilnadu',
+      'india',
+      'indian union',
+      'bharat',
+      'भारत',
+    ];
+
+    return blockedNames.contains(text);
   }
 
   // ============================================================
