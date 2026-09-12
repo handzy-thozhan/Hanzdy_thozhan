@@ -22,145 +22,203 @@ class _WorkerFieldSelectorState
     extends State<WorkerFieldSelector> {
   late List<String> selectedFields;
 
-  final List<String> workerFields = [
-    'Electrician',
+  final List<String> jobFields = [
     'Plumber',
+    'Electrician',
     'Carpenter',
     'Painter',
-    'AC Technician',
+    'AC Service',
     'Cleaning',
-    'Driver',
-    'Delivery Partner',
-    'Other Services',
+    'Lifting & Moving',
+    'Others',
   ];
 
   @override
   void initState() {
     super.initState();
 
-    selectedFields = [
-      ...widget.selectedFields,
-    ];
+    selectedFields = List<String>.from(
+      widget.selectedFields,
+    );
   }
 
-  void _selectField(String field) {
+  void _toggleField(String field) {
     setState(() {
       if (selectedFields.contains(field)) {
         selectedFields.remove(field);
-      } else {
-        if (selectedFields.length < 2) {
-          selectedFields.add(field);
-        }
+        return;
       }
+
+      if (selectedFields.length >= 2) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You can select maximum 2 jobs',
+            ),
+          ),
+        );
+        return;
+      }
+
+      selectedFields.add(field);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.border,
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(
+          20,
+          22,
+          20,
+          20,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Select your working field',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(28),
           ),
-
-          const SizedBox(height: 6),
-
-          const Text(
-            'Choose maximum 2 fields',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: workerFields.length,
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 2.8,
-            ),
-            itemBuilder: (context, index) {
-              final field = workerFields[index];
-              final isSelected =
-                  selectedFields.contains(field);
-
-              return InkWell(
-                onTap: () {
-                  _selectField(field);
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.lightTeal,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.border,
-                    ),
-                  ),
-                  child: Text(
-                    field,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isSelected
-                          ? AppColors.textOnPrimary
-                          : AppColors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 18),
-
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: selectedFields.isEmpty
-                  ? null
-                  : () {
-                      widget.onContinue(selectedFields);
-                    },
-              child: const Text(
-                'Continue',
               ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 22),
+
+            const Text(
+              'Choose your work',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            Text(
+              'Select maximum 2 job fields',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: jobFields.length,
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 2.7,
+              ),
+              itemBuilder: (context, index) {
+                final field = jobFields[index];
+                final isSelected =
+                    selectedFields.contains(field);
+
+                return InkWell(
+                  onTap: () {
+                    _toggleField(field);
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.lightTeal
+                          : AppColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            field,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          isSelected
+                              ? Icons.check_circle_rounded
+                              : Icons.circle_outlined,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 22),
+
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: selectedFields.isEmpty
+                    ? null
+                    : () {
+                        widget.onContinue(selectedFields);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.border,
+                  foregroundColor: AppColors.textOnPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
