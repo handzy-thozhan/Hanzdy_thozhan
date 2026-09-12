@@ -17,7 +17,9 @@ class WorkerHomeScreen extends StatefulWidget {
 
 class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   bool _isOnline = false;
-  bool _showStats = true;
+
+  // First app open: Stats closed
+  bool _showStats = false;
 
   int _selectedBottomIndex = 0;
 
@@ -63,12 +65,13 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           children: [
             _buildHeader(),
 
-            // Today's Earnings bar removed.
-            // Go Online card added here.
+            // Go Online card
             _buildGoOnlineSection(),
 
+            // Stats open / close button
             _buildStatsArrow(),
 
+            // Stats are hidden initially
             if (_showStats) _buildStatsSection(),
 
             Expanded(
@@ -136,7 +139,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     letterSpacing: -0.5,
                   ),
                 ),
+
                 SizedBox(height: 4),
+
                 Text(
                   'Your work. Your freedom.',
                   style: TextStyle(
@@ -259,7 +264,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
 
           Switch(
             value: _isOnline,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
             activeTrackColor: AppColors.secondary,
             onChanged: (_) {
               _toggleOnline();
@@ -411,7 +416,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     if (!_isOnline) {
       return Container(
         width: double.infinity,
-        color: const Color(0xFFEAF8F5),
+        color: AppColors.background,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -469,7 +474,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           child: _buildMapButton(
             icon: Icons.currency_rupee_rounded,
             title: 'Super Areas',
-            color: Colors.blue,
+            color: AppColors.secondary,
           ),
         ),
 
@@ -479,7 +484,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           child: _buildMapButton(
             icon: Icons.location_on_rounded,
             title: 'Go to',
-            color: Colors.redAccent,
+            color: AppColors.primary,
           ),
         ),
 
@@ -489,7 +494,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           child: _buildMapButton(
             icon: Icons.arrow_upward_rounded,
             title: 'Surge',
-            color: Colors.red,
+            color: AppColors.secondary,
           ),
         ),
       ],
@@ -514,7 +519,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: AppColors.textPrimary.withValues(alpha:0.08),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),

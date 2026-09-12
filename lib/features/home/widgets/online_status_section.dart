@@ -56,7 +56,7 @@ class _OnlineStatusSectionState
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: widget.isOnline
-                ? AppColors.lightTeal
+                ? AppColors.secondary.withValues(alpha:0.12)
                 : AppColors.card,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
@@ -73,7 +73,7 @@ class _OnlineStatusSectionState
                 decoration: BoxDecoration(
                   color: widget.isOnline
                       ? AppColors.primary
-                      : AppColors.lightTeal,
+                      : AppColors.secondary.withValues(alpha:0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -120,7 +120,7 @@ class _OnlineStatusSectionState
 
               Switch(
                 value: widget.isOnline,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 activeTrackColor: AppColors.secondary,
                 onChanged: (_) {
                   _handleOnlineTap();
@@ -138,7 +138,7 @@ class _OnlineStatusSectionState
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.lightTeal,
+              color: AppColors.secondary.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(

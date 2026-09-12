@@ -20,7 +20,6 @@ class AppTheme {
       primary: AppColors.primary,
       secondary: AppColors.secondary,
       surface: AppColors.card,
-      background: AppColors.background,
       onPrimary: AppColors.textOnPrimary,
       onSurface: AppColors.textPrimary,
       error: AppColors.error,
@@ -285,9 +284,9 @@ class AppTheme {
     // ==========================================================
 
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith<Color?>(
+      thumbColor: WidgetStateProperty.resolveWith<Color?>(
         (states) {
-          if (states.contains(MaterialState.selected)) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
 
@@ -295,9 +294,9 @@ class AppTheme {
         },
       ),
 
-      trackColor: MaterialStateProperty.resolveWith<Color?>(
+      trackColor: WidgetStateProperty.resolveWith<Color?>(
         (states) {
-          if (states.contains(MaterialState.selected)) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.secondary;
           }
 
@@ -305,9 +304,9 @@ class AppTheme {
         },
       ),
 
-      trackOutlineColor: MaterialStateProperty.resolveWith<Color?>(
+      trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
         (states) {
-          if (states.contains(MaterialState.selected)) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
 
@@ -358,9 +357,9 @@ class AppTheme {
     // ==========================================================
 
     checkboxTheme: CheckboxThemeData(
-      fillColor: MaterialStateProperty.resolveWith<Color?>(
+      fillColor: WidgetStateProperty.resolveWith<Color?>(
         (states) {
-          if (states.contains(MaterialState.selected)) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
 
@@ -368,7 +367,7 @@ class AppTheme {
         },
       ),
 
-      checkColor: const MaterialStatePropertyAll<Color>(
+      checkColor: const WidgetStatePropertyAll<Color>(
         AppColors.textOnPrimary,
       ),
 
@@ -387,9 +386,9 @@ class AppTheme {
     // ==========================================================
 
     radioTheme: RadioThemeData(
-      fillColor: MaterialStateProperty.resolveWith<Color?>(
+      fillColor: WidgetStateProperty.resolveWith<Color?>(
         (states) {
-          if (states.contains(MaterialState.selected)) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
 

@@ -24,7 +24,7 @@ class HomeHeader extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: AppColors.lightTeal,
+              color: AppColors.secondary.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
@@ -72,7 +72,7 @@ class HomeHeader extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: AppColors.lightTeal,
+              color: AppColors.secondary.withValues(alpha:0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(

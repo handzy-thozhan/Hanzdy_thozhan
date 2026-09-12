@@ -35,7 +35,7 @@ class _HomeMapSectionState extends State<HomeMapSection> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.textPrimary.withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 7),
           ),
@@ -77,7 +77,7 @@ class _HomeMapSectionState extends State<HomeMapSection> {
                           shape: BoxShape.circle,
                           color: AppColors.primary,
                           border: Border.all(
-                            color: Colors.white,
+                            color: AppColors.card,
                             width: 3,
                           ),
                           boxShadow: [
@@ -92,7 +92,7 @@ class _HomeMapSectionState extends State<HomeMapSection> {
                         ),
                         child: const Icon(
                           Icons.location_on_rounded,
-                          color: Colors.white,
+                          color: AppColors.card,
                           size: 28,
                         ),
                       ),
@@ -123,11 +123,13 @@ class _HomeMapSectionState extends State<HomeMapSection> {
                     vertical: 11,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
+                        color: AppColors.textPrimary.withValues(
+                          alpha: 0.10,
+                        ),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -160,11 +162,13 @@ class _HomeMapSectionState extends State<HomeMapSection> {
                     vertical: 9,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
+                        color: AppColors.textPrimary.withValues(
+                          alpha: 0.10,
+                        ),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -189,11 +193,13 @@ class _HomeMapSectionState extends State<HomeMapSection> {
                 vertical: 11,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
+                    color: AppColors.textPrimary.withValues(
+                      alpha: 0.10,
+                    ),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -225,10 +231,12 @@ class _HomeMapSectionState extends State<HomeMapSection> {
             right: 14,
             bottom: 14,
             child: Material(
-              color: Colors.white,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(16),
               elevation: 5,
-              shadowColor: Colors.black26,
+              shadowColor: AppColors.textPrimary.withValues(
+                alpha: 0.25,
+              ),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () {

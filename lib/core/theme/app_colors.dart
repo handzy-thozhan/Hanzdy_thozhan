@@ -18,7 +18,7 @@ class AppColors {
   // ============================================================
 
   /// Main application background
-  static const Color background = Color(0xFFFDEEEE);
+  static const Color background = Color(0xFFFFFFFF);
 
   /// Very light maroon background for cards / sections
   static const Color lightTeal = Color(0xFFF8E4E7);

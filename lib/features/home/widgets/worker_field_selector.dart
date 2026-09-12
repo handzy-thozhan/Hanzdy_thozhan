@@ -37,9 +37,7 @@ class _WorkerFieldSelectorState
   void initState() {
     super.initState();
 
-    selectedFields = List<String>.from(
-      widget.selectedFields,
-    );
+    selectedFields = List<String>.from(widget.selectedFields);
   }
 
   void _toggleField(String field) {
@@ -52,9 +50,7 @@ class _WorkerFieldSelectorState
       if (selectedFields.length >= 2) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'You can select maximum 2 jobs',
-            ),
+            content: Text('You can select maximum 2 jobs'),
           ),
         );
         return;
@@ -68,12 +64,7 @@ class _WorkerFieldSelectorState
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          22,
-          20,
-          20,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
         decoration: const BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.vertical(
@@ -108,7 +99,7 @@ class _WorkerFieldSelectorState
 
             const SizedBox(height: 6),
 
-            Text(
+            const Text(
               'Select maximum 2 job fields',
               style: TextStyle(
                 color: AppColors.textSecondary,
@@ -147,7 +138,7 @@ class _WorkerFieldSelectorState
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.lightTeal
+                          ? AppColors.secondary.withValues(alpha:0.12)
                           : AppColors.card,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
@@ -173,6 +164,7 @@ class _WorkerFieldSelectorState
                             ),
                           ),
                         ),
+
                         Icon(
                           isSelected
                               ? Icons.check_circle_rounded

@@ -67,7 +67,7 @@ class HomeBottomNavigation extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.lightTeal
+              ? AppColors.secondary.withValues(alpha:0.12)
               : AppColors.card,
           borderRadius: BorderRadius.circular(16),
         ),

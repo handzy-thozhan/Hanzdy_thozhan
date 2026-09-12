@@ -25,7 +25,7 @@ class HomeStatsSection extends StatelessWidget {
               width: 54,
               height: 34,
               decoration: BoxDecoration(
-                color: AppColors.lightTeal,
+                color: AppColors.secondary.withValues(alpha:0.12),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
                   color: AppColors.border,
