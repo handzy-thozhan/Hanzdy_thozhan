@@ -489,6 +489,11 @@ class _WorkerSignupScreenState extends State<WorkerSignupScreen> {
         'worker_profile_completed',
         true,
       );
+       
+        await prefs.setBool(
+           'user_registered',
+          true,
+      );
 
       if (localPhotoPath != null) {
         await prefs.setString(

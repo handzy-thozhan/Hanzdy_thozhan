@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/internet_service.dart';
 import '../../services/location_service.dart';
 import '../../services/preferences_service.dart';
@@ -80,6 +80,16 @@ class SplashController {
       '🚀 SplashController started',
     );
 
+   
+    final SharedPreferences prefs =
+        await SharedPreferences.getInstance();
+
+    final bool userRegistered =
+        prefs.getBool('user_registered') ?? false;
+
+    debugPrint(
+      '👤 User registered: $userRegistered',
+    );
     // ==========================================================
     // STEP 1 — INTERNET
     // ==========================================================
@@ -286,8 +296,7 @@ class SplashController {
       locationName,
       skipNotification:
           notificationCompleted,
-      registeredUser:
-          registeredUser,
+      registeredUser: userRegistered,
     );
   }
 }
