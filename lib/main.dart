@@ -32,8 +32,12 @@ class HandzyThozhanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+
       title: 'Handzy Thozhan',
+
+      // Centralized app theme
       theme: AppTheme.lightTheme,
+
       home: const SplashScreen(),
     );
   }
