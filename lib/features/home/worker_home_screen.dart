@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../profile/worker_profile_screen.dart';
+import '../menu/worker_profile_screen.dart';
 import '../../core/theme/app_colors.dart';
-
+import '../menu/worker_earnings_screen.dart';
 import '../menu/worker_menu_drawer.dart';
 import '../order/worker_order_screen.dart';
 
@@ -200,6 +200,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     ),
   );
 },
+// EARNINGS
+
           // HOME
           onHome: () {
             Navigator.of(context).pop();
@@ -226,12 +228,36 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           },
 
           // EARNINGS
-          onEarnings: () {
-            Navigator.of(context).pop();
+       
+onEarnings: () {
+  Navigator.of(context).pop();
 
-            // Earnings page will be connected later.
-          },
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => EarningsScreen(
+        onHomeTap: () {
+          Navigator.of(context).pop();
 
+          setState(() {
+            _selectedBottomIndex = 0;
+          });
+        },
+        onOrdersTap: () {
+          Navigator.of(context).pop();
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WorkerOrderScreen(
+                selectedFields: _selectedFields,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+},
           // HELP
           onHelp: () {
             Navigator.of(context).pop();
