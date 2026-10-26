@@ -11,7 +11,8 @@ import '../../core/theme/app_colors.dart';
 class WorkerMenuDrawer extends StatefulWidget {
 
   final VoidCallback onClose;
-
+  
+  final bool isOnline;
 
 
   final VoidCallback? onProfile;
@@ -25,7 +26,8 @@ class WorkerMenuDrawer extends StatefulWidget {
   final VoidCallback? onHelp;
 
   final VoidCallback? onSettings;
-
+  
+  
 
 
   const WorkerMenuDrawer({
@@ -33,7 +35,8 @@ class WorkerMenuDrawer extends StatefulWidget {
     super.key,
 
     required this.onClose,
-
+    
+     required this.isOnline,
     this.onProfile,
 
     this.onHome,
@@ -273,12 +276,11 @@ class _WorkerMenuDrawerState extends State<WorkerMenuDrawer>
                     color: AppColors.white,
 
                     child: SafeArea(
-
-                      right: false,
-
-                      child: Column(
-
-                        children: [
+  top: false,
+  right: false,
+  bottom: false,
+  child: Column(
+    children: [
 
                           // =================================================
 
@@ -900,7 +902,7 @@ class _WorkerMenuDrawerState extends State<WorkerMenuDrawer>
             color: AppColors.onlineToggle.withOpacity(0.16),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
@@ -910,13 +912,15 @@ class _WorkerMenuDrawerState extends State<WorkerMenuDrawer>
               ),
               SizedBox(width: 5),
               Text(
-                'Online',
-                style: TextStyle(
-                  color: AppColors.success,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+  widget.isOnline ? 'Online' : 'Offline',
+  style: TextStyle(
+    color: widget.isOnline
+        ? AppColors.success
+        : AppColors.textSecondary,
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+  ),
+),
             ],
           ),
         ),

@@ -206,6 +206,7 @@ class _WorkerSignupScreenState extends State<WorkerSignupScreen> {
   Future<void> _selectBloodGroup() async {
     final result = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -218,56 +219,58 @@ class _WorkerSignupScreenState extends State<WorkerSignupScreen> {
             padding: const EdgeInsets.symmetric(
               vertical: 10,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Select Blood Group',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: darkText,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ..._bloodGroups.map(
-                  (group) => ListTile(
-                    dense: true,
-                    leading: const Icon(
-                      Icons.water_drop_outlined,
-                      color: primaryTeal,
-                      size: 20,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    title: Text(
-                      group,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Select Blood Group',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: darkText,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._bloodGroups.map(
+                    (group) => ListTile(
+                      dense: true,
+                      leading: const Icon(
+                        Icons.water_drop_outlined,
+                        color: primaryTeal,
+                        size: 20,
+                      ),
+                      title: Text(
+                        group,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      trailing: _selectedBloodGroup == group
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: primaryTeal,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () => Navigator.pop(
+                        context,
+                        group,
                       ),
                     ),
-                    trailing: _selectedBloodGroup == group
-                        ? const Icon(
-                            Icons.check_circle,
-                            color: primaryTeal,
-                            size: 20,
-                          )
-                        : null,
-                    onTap: () => Navigator.pop(
-                      context,
-                      group,
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

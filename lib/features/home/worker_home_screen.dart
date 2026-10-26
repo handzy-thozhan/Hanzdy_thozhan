@@ -20,13 +20,15 @@ class WorkerHomeScreen extends StatefulWidget {
   }
 }
 
-class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   // --------------------------------------------------
   // INITIAL STATE
   // --------------------------------------------------
+class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
+  // INITIAL STATE
 
   bool _isOnline = false;
   bool _showStats = false;
+  bool _isUpdatingStatus = false;
 
   String _workerName = 'Worker';
 
@@ -54,99 +56,63 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
 
   Future<void> _loadWorkerName() async {
     try {
-      final SharedPreferences prefs =
-          await SharedPreferences.getInstance();
-
-      // ------------------------------------------------
-      // FIRST: CHECK LOCAL NAME
-      // ------------------------------------------------
-
-      final String? localName =
-          prefs.getString('worker_name');
-
-      if (localName != null &&
-          localName.trim().isNotEmpty) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _workerName = localName.trim();
-        });
-
-        debugPrint(
-          '👤 Worker name from local: $_workerName',
-        );
-
-        return;
-      }
-
-      // ------------------------------------------------
-      // SECOND: GET NAME FROM FIRESTORE
-      // ------------------------------------------------
-
-      final User? user =
-          FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
+      final prefs = await SharedPreferences.getInstance();
 
       if (user == null) {
-        debugPrint(
-          '⚠️ No Firebase user found.',
-        );
+        final localName = prefs.getString('worker_name');
+        if (localName != null && localName.trim().isNotEmpty && mounted) {
+          setState(() => _workerName = localName.trim());
+        }
         return;
       }
 
-      final DocumentSnapshot<Map<String, dynamic>>
-          workerDoc =
-          await FirebaseFirestore.instance
-              .collection('workers')
-              .doc(user.uid)
-              .get();
+      final workerDoc = await FirebaseFirestore.instance
+          .collection('workers')
+          .doc(user.uid)
+          .get();
 
-      if (!workerDoc.exists) {
-        debugPrint(
-          '⚠️ Worker document not found.',
-        );
-        return;
+      final firestoreName = workerDoc.data()?['fullName']?.toString();
+      final localName = prefs.getString('worker_name');
+      final name = (firestoreName != null && firestoreName.trim().isNotEmpty)
+          ? firestoreName.trim()
+          : (localName != null && localName.trim().isNotEmpty
+              ? localName.trim()
+              : 'Worker');
+
+      if (firestoreName != null && firestoreName.trim().isNotEmpty) {
+        await prefs.setString('worker_name', name);
       }
 
-      final Map<String, dynamic>? data =
-          workerDoc.data();
+      if (!mounted) return;
+      setState(() => _workerName = name);
+    } catch (e) {
+      debugPrint('Failed to load worker name: $e');
+    }
+  }
 
-      final String? firestoreName =
-          data?['fullName']?.toString();
+  Future<void> _loadWorkerStatus() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-      if (firestoreName == null ||
-          firestoreName.trim().isEmpty) {
-        debugPrint(
-          '⚠️ fullName not found in Firestore.',
-        );
-        return;
-      }
+      final doc = await FirebaseFirestore.instance
+          .collection('workers')
+          .doc(user.uid)
+          .get();
 
-      final String name =
-          firestoreName.trim();
-
-      // Save locally for future app opens.
-      await prefs.setString(
-        'worker_name',
-        name,
-      );
-
-      if (!mounted) {
-        return;
-      }
+      if (!doc.exists || !mounted) return;
+      final data = doc.data() ?? <String, dynamic>{};
+      final profession = data['profession'];
 
       setState(() {
-        _workerName = name;
+        _isOnline = data['isOnline'] == true;
+        _selectedFields = profession is List
+            ? profession.whereType<String>().toList()
+            : <String>[];
       });
-
-      debugPrint(
-        '👤 Worker name from Firestore: $_workerName',
-      );
     } catch (e) {
-      debugPrint(
-        '❌ Failed to load worker name: $e',
-      );
+      debugPrint('Failed to load worker status: $e');
     }
   }
 
@@ -164,6 +130,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     super.initState();
 
     _loadWorkerName();
+    _loadWorkerStatus();
   }
 
   // --------------------------------------------------
@@ -184,10 +151,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         secondaryAnimation,
       ) {
         return WorkerMenuDrawer(
-          onClose: () {
-            Navigator.of(context).pop();
-          },
-
+  isOnline: _isOnline,
+  onClose: () {
+    Navigator.of(context).pop();
+  },
           // PROFILE
         onProfile: () {
   Navigator.of(context).pop();
@@ -308,32 +275,89 @@ onEarnings: () {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor:
-          Colors.transparent,
-      builder: (context) {
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
         return WorkerFieldSelector(
-          selectedFields:
-              _selectedFields,
-          onContinue: (fields) {
-            setState(() {
-              _selectedFields = fields;
-              _isOnline = true;
-            });
+          selectedFields: _selectedFields,
+          onContinue: (fields) async {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please login again.')),
+              );
+              return;
+            }
 
-            Navigator.pop(context);
+            if (_isUpdatingStatus) return;
+            setState(() => _isUpdatingStatus = true);
+
+            try {
+              await FirebaseFirestore.instance
+                  .collection('workers')
+                  .doc(user.uid)
+                  .set({
+                'profession': List<String>.from(fields),
+                'isOnline': true,
+              }, SetOptions(merge: true));
+
+              if (!mounted) return;
+              setState(() {
+                _selectedFields = List<String>.from(fields);
+                _isOnline = true;
+              });
+              Navigator.pop(sheetContext);
+            } catch (e) {
+              debugPrint('Failed to save worker profession/status: $e');
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Could not save your status. Please try again.'),
+                ),
+              );
+            } finally {
+              if (mounted) {
+                setState(() => _isUpdatingStatus = false);
+              }
+            }
           },
         );
       },
     );
   }
 
-  void _toggleOnline() {
-    if (_isOnline) {
-      setState(() {
-        _isOnline = false;
-      });
-    } else {
+  Future<void> _toggleOnline() async {
+    if (_isUpdatingStatus) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login again.')),
+      );
+      return;
+    }
+
+    if (!_isOnline) {
       _openJobSelector();
+      return;
+    }
+
+    setState(() => _isUpdatingStatus = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('workers')
+          .doc(user.uid)
+          .set({'isOnline': false}, SetOptions(merge: true));
+
+      if (!mounted) return;
+      setState(() => _isOnline = false);
+    } catch (e) {
+      debugPrint('Failed to update worker status: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update your status. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUpdatingStatus = false);
     }
   }
 
@@ -716,9 +740,9 @@ onEarnings: () {
                     .withValues(
               alpha: 0.25,
             ),
-            onChanged: (_) {
-              _toggleOnline();
-            },
+            onChanged: _isUpdatingStatus
+                ? null
+                : (_) => _toggleOnline(),
           ),
         ],
       ),
