@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../../core/theme/app_colors.dart';
+import '../../services/order_sound_service.dart';
 
 class WorkerOrderScreen extends StatefulWidget {
   final List<String> selectedFields;
@@ -14,9 +16,74 @@ class WorkerOrderScreen extends StatefulWidget {
 }
 
 class _WorkerOrderScreenState extends State<WorkerOrderScreen> {
+  // Sound-only additions. Existing order screen logic is kept unchanged.
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _orderSoundSubscription;
+  final Set<String> _knownOrderIds = <String>{};
+  bool _isFirstOrderSoundSnapshot = true;
+
   int _selectedTab = 0;
   final Set<String> _busyOrderIds = <String>{};
   static const List<String> _tabs = ['New', 'Accepted', 'In Progress', 'Completed'];
+
+  @override
+  void initState() {
+    super.initState();
+    _startOrderSoundListener();
+  }
+
+  @override
+  void dispose() {
+    _orderSoundSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startOrderSoundListener() async {
+    try {
+      await OrderSoundService.instance.initialize();
+      if (!mounted) return;
+
+      _orderSoundSubscription = FirebaseFirestore.instance
+          .collection('orders')
+          .where('status', isEqualTo: 'searching')
+          .snapshots()
+          .listen((snapshot) async {
+        // Register current orders silently; only later-added orders alert.
+        if (_isFirstOrderSoundSnapshot) {
+          _knownOrderIds.addAll(snapshot.docs.map((doc) => doc.id));
+          _isFirstOrderSoundSnapshot = false;
+          return;
+        }
+
+        for (final change in snapshot.docChanges) {
+          if (change.type != DocumentChangeType.added) continue;
+          final doc = change.doc;
+          if (!_knownOrderIds.add(doc.id)) continue;
+
+          final data = doc.data();
+
+        if (data == null) continue;
+
+        if (!_matchesProfession(data)) continue;
+        if (_isRejectedByMe(data)) continue;
+
+         final assigned = data['assignedWorkerUid'];
+         if (assigned != null && assigned.toString().isNotEmpty) {
+             continue;
+            }
+
+        await OrderSoundService.instance.showNewOrder(
+        orderId: doc.id,
+        profession: (data['professionName'] ?? 'Service').toString(),
+        problemType: (data['problemType'] ?? '').toString(),
+         );
+        }
+      }, onError: (Object error) {
+        debugPrint('Order sound listener error: $error');
+      });
+    } catch (error) {
+      debugPrint('Could not initialize order sound: $error');
+    }
+  }
 
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
   String _norm(String value) => value.trim().toLowerCase();

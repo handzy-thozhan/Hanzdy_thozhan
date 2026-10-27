@@ -88,7 +88,7 @@
     # LOCAL NOTIFICATIONS
     # ------------------------------------------------------------
 
-    flutter_local_notifications: ^19.4.0
+    flutter_local_notifications: ^22.3.3
     android_intent_plus: ^6.1.0
 
     # ------------------------------------------------------------
